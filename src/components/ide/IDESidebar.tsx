@@ -2,18 +2,10 @@ import { useState, useEffect } from 'react';
 import { 
   Sidebar, 
   SidebarContent, 
-  SidebarGroup, 
-  SidebarGroupContent, 
-  SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarTrigger,
-  useSidebar
+  SidebarTrigger
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { vfs } from '@/sebian/vfs';
 import { 
@@ -22,7 +14,6 @@ import {
   File, 
   Folder, 
   FolderOpen,
-  Plus,
   RefreshCw,
   FileCode,
   Image,
@@ -45,8 +36,6 @@ interface IDESidebarProps {
 export function IDESidebar({ onFileSelect, currentFile }: IDESidebarProps) {
   const [fileTree, setFileTree] = useState<FileTreeNode | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['/']));
-  const { state } = useSidebar();
-  const isCollapsed = state === 'collapsed';
 
   useEffect(() => {
     refreshFileTree();
@@ -141,14 +130,12 @@ export function IDESidebar({ onFileSelect, currentFile }: IDESidebarProps) {
   };
 
   return (
-    <Sidebar className={cn(isCollapsed ? "w-14" : "w-60")} collapsible="icon">
+    <Sidebar className="w-60" collapsible="icon">
       <SidebarHeader className="border-b border-border p-2">
         <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Explorer
-            </span>
-          )}
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide group-data-[collapsible=icon]:hidden">
+            Explorer
+          </span>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={refreshFileTree}>
               <RefreshCw className="h-3.5 w-3.5" />
