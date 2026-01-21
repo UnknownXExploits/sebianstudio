@@ -39,19 +39,30 @@ export function AIPanel({ onInsertCode, onReplaceCode, currentCode = '' }: AIPan
 
     try {
       const response = await generateWithPollinations(input, mode, currentCode);
+      const code = response.code || generateFallbackCode(input);
+      
+      // Auto-apply the code
+      if (code) {
+        onReplaceCode(code);
+      }
       
       const assistantMessage: Message = {
         role: 'assistant',
-        content: response.explanation || 'Here\'s the code:',
-        code: response.code,
+        content: response.explanation || '✅ Code applied!',
+        code,
       };
       
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
+      const code = generateFallbackCode(input);
+      
+      // Auto-apply fallback code
+      onReplaceCode(code);
+      
       const fallbackMessage: Message = {
         role: 'assistant',
-        content: 'Generated based on your request:',
-        code: generateFallbackCode(input),
+        content: '✅ Code applied!',
+        code,
       };
       setMessages(prev => [...prev, fallbackMessage]);
     } finally {
@@ -112,35 +123,74 @@ Respond with JSON: { "code": "sebian code here", "explanation": "brief explanati
     const lower = prompt.toLowerCase();
     
     if (lower.includes('counter')) {
-      return `// Counter App
+      return `// Counter App - Sebian Example
+Import SebianVM from Sebian
 Import UI from sebian
 
+// State
 local count = 0
 
-function increment() [ count = count + 1 ]
-function decrement() [ count = count - 1 ]
-
-Create container
-[
-  Create text [ id="display" content="Count: 0" style="font-size: 32px;" ]
-  Create button [ text="+" onClick.function=increment ]
-  Create button [ text="-" onClick.function=decrement ]
+// Functions
+function increment() [
+  count = count + 1
+  updateDisplay()
 ]
 
+function decrement() [
+  count = count - 1
+  updateDisplay()
+]
+
+function updateDisplay() [
+  from ui import setText
+  setText("counter-display", count)
+]
+
+// UI Layout
+Create container [
+  style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 32px;"
+]
+
+Create text [
+  id="counter-display"
+  content="0"
+  style="font-size: 48px; font-weight: bold; color: #00ff88;"
+]
+
+Create row [
+  style="display: flex; gap: 12px;"
+]
+
+Create button [
+  text="-"
+  style="width: 60px; height: 60px; font-size: 24px; background: #ff4444; border-radius: 8px;"
+  onClick.function=decrement
+]
+
+Create button [
+  text="+"
+  style="width: 60px; height: 60px; font-size: 24px; background: #00ff88; border-radius: 8px;"
+  onClick.function=increment
+]
+
+// Render
 from ui import render
 render(container)`;
     }
     
     if (lower.includes('button')) {
-      return `// Button
+      return `// Button Example - Sebian
+Import SebianVM from Sebian
 Import UI from sebian
 
-function handleClick() [ /* clicked */ ]
+function handleClick() [
+  from ui import alert
+  alert("Button clicked!")
+]
 
-Create button
-[
+Create button [
   text="Click Me"
-  style="padding: 12px 24px; background: #00ff88;"
+  style="padding: 16px 32px; background: #00ff88; border-radius: 8px; font-weight: bold;"
   onClick.function=handleClick
 ]
 
@@ -148,13 +198,13 @@ from ui import render
 render(button)`;
     }
     
-    return `// Generated Template
+    return `// Sebian Template
+Import SebianVM from Sebian
 Import UI from sebian
 
-Create text
-[
+Create text [
   content="Hello, Sebian!"
-  style="font-size: 24px; color: #00ff88;"
+  style="font-size: 24px; color: #00ff88; font-weight: bold;"
 ]
 
 from ui import render
