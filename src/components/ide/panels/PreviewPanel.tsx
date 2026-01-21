@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 interface PreviewPanelProps {
   code: string;
   onLog?: (message: string) => void;
+  runTrigger?: number;
 }
 
 type DeviceMode = 'desktop' | 'tablet' | 'mobile';
@@ -20,7 +21,7 @@ interface SebianUINode {
   parent: SebianUINode | null;
 }
 
-export function PreviewPanel({ code, onLog }: PreviewPanelProps) {
+export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps) {
   const [uiRoot, setUiRoot] = useState<SebianUINode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
@@ -70,11 +71,12 @@ export function PreviewPanel({ code, onLog }: PreviewPanelProps) {
     }
   }, [code, onLog]);
 
+  // Run on code change (if auto-refresh) OR when runTrigger changes (from AI apply)
   useEffect(() => {
-    if (autoRefresh) {
+    if (autoRefresh || runTrigger > 0) {
       refreshPreview();
     }
-  }, [code, autoRefresh, refreshPreview]);
+  }, [code, autoRefresh, refreshPreview, runTrigger]);
 
   // Render a SebianUINode to React
   const renderNode = (node: SebianUINode): React.ReactNode => {

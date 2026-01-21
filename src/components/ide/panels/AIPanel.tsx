@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 interface AIPanelProps {
   onInsertCode: (code: string) => void;
   onReplaceCode: (code: string) => void;
+  onRun?: () => void;
   currentCode?: string;
 }
 
@@ -20,7 +21,7 @@ interface Message {
   code?: string;
 }
 
-export function AIPanel({ onInsertCode, onReplaceCode, currentCode = '' }: AIPanelProps) {
+export function AIPanel({ onInsertCode, onReplaceCode, onRun, currentCode = '' }: AIPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -134,7 +135,11 @@ print("Hello from SebianVM")`;
       if (error) throw error;
 
       const code = data?.code || generateFallbackCode(currentInput);
-      const explanation = data?.explanation || '✅ Code generated!';
+      const explanation = data?.explanation || '✅ Code applied and running!';
+      
+      // Auto-apply and run immediately
+      onReplaceCode(code);
+      setTimeout(() => onRun?.(), 100);
       
       const assistantMessage: Message = {
         role: 'assistant',
@@ -146,19 +151,22 @@ print("Hello from SebianVM")`;
     } catch (error) {
       console.error('AI error:', error);
       
-      // Use fallback on error
+      // Use fallback on error - auto-apply
       const code = generateFallbackCode(currentInput);
+      
+      onReplaceCode(code);
+      setTimeout(() => onRun?.(), 100);
       
       const fallbackMessage: Message = {
         role: 'assistant',
-        content: '⚠️ Using offline template. Click Apply to use it!',
+        content: '⚠️ Using offline template. Applied and running!',
         code,
       };
       setMessages(prev => [...prev, fallbackMessage]);
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, mode, currentCode, generateFallbackCode]);
+  }, [input, isLoading, mode, currentCode, generateFallbackCode, onReplaceCode, onRun]);
 
   const copyCode = useCallback((code: string) => {
     navigator.clipboard.writeText(code);

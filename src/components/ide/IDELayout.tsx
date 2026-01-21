@@ -36,6 +36,9 @@ export function IDELayout() {
   const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai'>('preview');
   const [bottomPanel, setBottomPanel] = useState<'console' | 'terminal'>('console');
   const [isBottomExpanded, setIsBottomExpanded] = useState(true);
+  const [runTrigger, setRunTrigger] = useState(0);
+
+  const triggerRun = () => setRunTrigger(prev => prev + 1);
 
   useEffect(() => {
     async function init() {
@@ -183,12 +186,13 @@ print("Template migrated: removed legacy render(text)")
                 />
               </TabsContent>
               <TabsContent value="preview" className="flex-1 m-0 mt-0 min-h-0">
-                <PreviewPanel code={fileContent} />
+                <PreviewPanel code={fileContent} runTrigger={runTrigger} />
               </TabsContent>
               <TabsContent value="ai" className="flex-1 m-0 mt-0 min-h-0">
                 <AIPanel 
                   onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} 
                   onReplaceCode={handleReplaceCode}
+                  onRun={triggerRun}
                   currentCode={fileContent}
                 />
               </TabsContent>
@@ -240,12 +244,13 @@ print("Template migrated: removed legacy render(text)")
                           </TabsList>
                           
                           <TabsContent value="preview" className="flex-1 m-0 mt-0">
-                            <PreviewPanel code={fileContent} />
+                            <PreviewPanel code={fileContent} runTrigger={runTrigger} />
                           </TabsContent>
                           <TabsContent value="ai" className="flex-1 m-0 mt-0">
                             <AIPanel 
                               onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} 
                               onReplaceCode={handleReplaceCode}
+                              onRun={triggerRun}
                               currentCode={fileContent}
                             />
                           </TabsContent>
