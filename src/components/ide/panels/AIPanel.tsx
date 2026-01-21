@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Send, Copy, Wand2, Loader2, Code, MessageSquare, Replace } from 'lucide-react';
+import { Sparkles, Send, Copy, Wand2, Loader2, Code, Replace } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AIPanelProps {
   onInsertCode: (code: string) => void;
@@ -22,107 +24,16 @@ export function AIPanel({ onInsertCode, onReplaceCode, currentCode = '' }: AIPan
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '👋 I can help you write Sebian code!\n\n• "Create a counter app"\n• "Add a button that increments"\n• "Fix my code"\n\nClick "Apply" to replace your code directly!',
+      content: '👋 I can help you write Sebian code!\n\n• "Create a counter app"\n• "Add a button that increments"\n• "Fix my code"\n\nClick "Apply" to use the generated code!',
     },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'generate' | 'modify'>('generate');
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const response = await generateWithPollinations(input, mode, currentCode);
-      const code = response.code || generateFallbackCode(input);
-      
-      // Auto-apply the code
-      if (code) {
-        onReplaceCode(code);
-      }
-      
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: response.explanation || '✅ Code applied!',
-        code,
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      const code = generateFallbackCode(input);
-      
-      // Auto-apply fallback code
-      onReplaceCode(code);
-      
-      const fallbackMessage: Message = {
-        role: 'assistant',
-        content: '✅ Code applied!',
-        code,
-      };
-      setMessages(prev => [...prev, fallbackMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generateWithPollinations = async (prompt: string, mode: 'generate' | 'modify', existingCode: string) => {
-    const systemPrompt = mode === 'modify' 
-      ? `You are an expert Sebian programmer. Modify the existing code based on user requests.
-Sebian syntax:
-- Import X from Y
-- from module import function
-- Create type [ properties... ]
-- local variable = value
-- function name(args) [ body ]
-- Repeat local element creation [ ... ]
-
-Existing code:
-${existingCode}
-
-Modify this code according to the user's request. Respond with JSON: { "code": "modified sebian code", "explanation": "what you changed" }`
-      : `You are an expert Sebian programmer. Generate Sebian code based on user requests.
-Sebian syntax:
-- Import X from Y
-- from module import function
-- Create type [ properties... ]
-- local variable = value
-- function name(args) [ body ]
-- Repeat local element creation [ ... ]
-
-Respond with JSON: { "code": "sebian code here", "explanation": "brief explanation" }`;
-
-    const response = await fetch('https://text.pollinations.ai/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt },
-        ],
-        model: 'openai',
-        jsonMode: true,
-      }),
-    });
-
-    if (!response.ok) throw new Error('API failed');
-
-    const text = await response.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      return { explanation: text };
-    }
-  };
-
-  const generateFallbackCode = (prompt: string): string => {
+  const generateFallbackCode = useCallback((prompt: string): string => {
     const lower = prompt.toLowerCase();
     
-    // Counter App (Sebian syntax, no JS)
     if (lower.includes('counter')) {
       return `// Counter App - Sebian
 
@@ -140,7 +51,6 @@ function decrement() [
   print("count=" + count)
 ]
 
-// UI (Create auto-renders)
 Create container app [
   style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px;"
 ]
@@ -174,7 +84,6 @@ Create button upBtn [
 print("Counter ready")`;
     }
     
-    // Button/click example
     if (lower.includes('button') || lower.includes('click')) {
       return `// Button Example - Sebian
 
@@ -188,11 +97,9 @@ Create button myButton [
   text="Click me"
   style="padding: 12px 18px; border-radius: 10px;"
   onClick.function=handleClick
-]
-`;
+]`;
     }
     
-    // Hello world default
     return `// Hello Sebian
 
 from core import print
@@ -203,18 +110,72 @@ Create text hello [
 ]
 
 print("Hello from SebianVM")`;
-  };
+  }, []);
 
-  const copyCode = (code: string) => {
+  const sendMessage = useCallback(async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = { role: 'user', content: input };
+    const currentInput = input;
+    
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('sebian-ai', {
+        body: { 
+          prompt: currentInput, 
+          mode, 
+          existingCode: mode === 'modify' ? currentCode : undefined 
+        }
+      });
+
+      if (error) throw error;
+
+      const code = data?.code || generateFallbackCode(currentInput);
+      const explanation = data?.explanation || '✅ Code generated!';
+      
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: explanation,
+        code,
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('AI error:', error);
+      
+      // Use fallback on error
+      const code = generateFallbackCode(currentInput);
+      
+      const fallbackMessage: Message = {
+        role: 'assistant',
+        content: '⚠️ Using offline template. Click Apply to use it!',
+        code,
+      };
+      setMessages(prev => [...prev, fallbackMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, isLoading, mode, currentCode, generateFallbackCode]);
+
+  const copyCode = useCallback((code: string) => {
     navigator.clipboard.writeText(code);
-  };
+    toast.success('Copied to clipboard');
+  }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const applyCode = useCallback((code: string) => {
+    onReplaceCode(code);
+    toast.success('Code applied to editor');
+  }, [onReplaceCode]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
-  };
+  }, [sendMessage]);
 
   return (
     <div className="h-full flex flex-col">
@@ -285,7 +246,7 @@ print("Hello from SebianVM")`;
                           variant="default"
                           size="sm"
                           className="h-5 px-2 text-[10px] gap-1"
-                          onClick={() => onReplaceCode(message.code!)}
+                          onClick={() => applyCode(message.code!)}
                           title="Apply to editor"
                         >
                           <Replace className="h-2.5 w-2.5" />
@@ -320,6 +281,7 @@ print("Hello from SebianVM")`;
             onKeyDown={handleKeyDown}
             placeholder={mode === 'modify' ? "Describe changes..." : "What to build..."}
             className="min-h-[40px] max-h-20 resize-none text-xs"
+            disabled={isLoading}
           />
           <Button
             onClick={sendMessage}
