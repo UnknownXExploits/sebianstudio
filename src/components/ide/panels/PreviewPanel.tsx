@@ -1,98 +1,123 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Smartphone, Monitor, Tablet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PreviewPanelProps {
   code: string;
+  onLog?: (message: string) => void;
 }
 
 type DeviceMode = 'desktop' | 'tablet' | 'mobile';
 
-export function PreviewPanel({ code }: PreviewPanelProps) {
-  const [previewContent, setPreviewContent] = useState<React.ReactNode | null>(null);
+// Type for SebianUINode (matches src/sebian/vm/types.ts)
+interface SebianUINode {
+  id: string;
+  type: string;
+  props: Map<string, any>;
+  children: SebianUINode[];
+  eventHandlers: Map<string, any>;
+  parent: SebianUINode | null;
+}
+
+export function PreviewPanel({ code, onLog }: PreviewPanelProps) {
+  const [uiRoot, setUiRoot] = useState<SebianUINode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [output, setOutput] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (autoRefresh) {
-      refreshPreview();
-    }
-  }, [code, autoRefresh]);
-
-  const refreshPreview = async () => {
+  const refreshPreview = useCallback(async () => {
     setError(null);
-    
+    setUiRoot(null);
+    setOutput([]);
+
     try {
-      // Dynamic import to avoid module resolution issues
+      // Dynamic imports to avoid circular dependencies
       const { compile } = await import('@/sebian/compiler');
       const { SebianVM } = await import('@/sebian/vm/vm');
-      
+
       const result = compile(code);
-      
+
       if (!result.success || !result.chunk) {
         if (result.errors.length > 0) {
           setError(result.errors.map(e => `Line ${e.line}: ${e.message}`).join('\n'));
         }
         return;
       }
-      
+
       const vm = new SebianVM();
+
+      // Capture output
+      vm.setOutputHandler((msg: string) => {
+        setOutput(prev => [...prev, msg]);
+        onLog?.(msg);
+      });
+
+      // Capture UI updates
+      vm.setUIUpdateHandler((root: SebianUINode | null) => {
+        setUiRoot(root);
+      });
+
       vm.run(result.chunk);
-      
-      setPreviewContent(
-        <div className="text-center p-8">
-          <div className="text-4xl mb-4">✅</div>
-          <p className="text-foreground font-medium">Code compiled successfully!</p>
-          <p className="text-sm text-muted-foreground mt-2">UI preview coming soon</p>
-        </div>
-      );
+
+      // If no UI was rendered, show success message
+      if (!uiRoot) {
+        // Will be handled by render logic
+      }
     } catch (err: any) {
       setError(err.message || 'Unknown error');
     }
-  };
+  }, [code, onLog]);
 
-  const renderUINode = (node: any): React.ReactNode => {
-    const props: any = {};
-    const style: any = {};
-    
-    // Convert VM props to React props
-    if (node.props) {
-      node.props.forEach((value: any, key: string) => {
-        if (key === 'style' && value.type === 'string') {
-          // Parse inline style string
-          const styleStr = value.value;
-          styleStr.split(';').forEach((rule: string) => {
-            const [prop, val] = rule.split(':').map((s: string) => s.trim());
-            if (prop && val) {
-              const camelProp = prop.replace(/-([a-z])/g, (g: string) => g[1].toUpperCase());
-              style[camelProp] = val;
-            }
-          });
-        } else if (key === 'content' || key === 'text') {
-          props.children = value.value;
-        } else if (key === 'className' || key === 'class') {
-          props.className = value.value;
-        } else {
-          props[key] = value.value;
-        }
-      });
+  useEffect(() => {
+    if (autoRefresh) {
+      refreshPreview();
     }
-    
+  }, [code, autoRefresh, refreshPreview]);
+
+  // Render a SebianUINode to React
+  const renderNode = (node: SebianUINode): React.ReactNode => {
+    const props: Record<string, any> = { key: node.id };
+    const style: React.CSSProperties = {};
+
+    // Extract props
+    node.props.forEach((value, key) => {
+      const val = value?.type === 'string' ? value.value : 
+                  value?.type === 'number' ? value.value :
+                  value?.type === 'boolean' ? value.value :
+                  value?.value ?? value;
+
+      if (key === 'style' && typeof val === 'string') {
+        // Parse inline style string
+        val.split(';').forEach((rule: string) => {
+          const [prop, v] = rule.split(':').map(s => s.trim());
+          if (prop && v) {
+            const camelProp = prop.replace(/-([a-z])/g, g => g[1].toUpperCase());
+            (style as any)[camelProp] = v;
+          }
+        });
+      } else if (key === 'content' || key === 'text') {
+        props.children = val;
+      } else if (key === 'className' || key === 'class') {
+        props.className = val;
+      } else if (key === 'id') {
+        props.id = val;
+      } else {
+        props[key] = val;
+      }
+    });
+
     props.style = style;
-    
+
     // Render children
-    const children = node.children?.map((child: any, i: number) => (
-      <React.Fragment key={i}>{renderUINode(child)}</React.Fragment>
-    ));
-    
-    if (children && children.length > 0) {
+    const children = node.children.map(child => renderNode(child));
+    if (children.length > 0) {
       props.children = children;
     }
-    
+
     // Map node types to HTML elements
-    const typeMap: Record<string, string> = {
+    const tagMap: Record<string, keyof JSX.IntrinsicElements> = {
       text: 'span',
       button: 'button',
       div: 'div',
@@ -103,11 +128,23 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
       label: 'label',
       image: 'img',
       link: 'a',
+      heading: 'h1',
+      paragraph: 'p',
     };
-    
-    const Tag = typeMap[node.type] || 'div';
-    
-    return <Tag {...props} />;
+
+    const Tag = tagMap[node.type] || 'div';
+
+    // Add default styling for row/column
+    if (node.type === 'row' && !style.display) {
+      style.display = 'flex';
+      style.flexDirection = 'row';
+    }
+    if (node.type === 'column' && !style.display) {
+      style.display = 'flex';
+      style.flexDirection = 'column';
+    }
+
+    return React.createElement(Tag, props);
   };
 
   const getDeviceStyles = (): string => {
@@ -126,36 +163,36 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
       {/* Preview Toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
         <div className="flex items-center gap-1">
-          <Button 
-            variant={deviceMode === 'desktop' ? 'secondary' : 'ghost'} 
-            size="icon" 
+          <Button
+            variant={deviceMode === 'desktop' ? 'secondary' : 'ghost'}
+            size="icon"
             className="h-7 w-7"
             onClick={() => setDeviceMode('desktop')}
           >
             <Monitor className="h-3.5 w-3.5" />
           </Button>
-          <Button 
-            variant={deviceMode === 'tablet' ? 'secondary' : 'ghost'} 
-            size="icon" 
+          <Button
+            variant={deviceMode === 'tablet' ? 'secondary' : 'ghost'}
+            size="icon"
             className="h-7 w-7"
             onClick={() => setDeviceMode('tablet')}
           >
             <Tablet className="h-3.5 w-3.5" />
           </Button>
-          <Button 
-            variant={deviceMode === 'mobile' ? 'secondary' : 'ghost'} 
-            size="icon" 
+          <Button
+            variant={deviceMode === 'mobile' ? 'secondary' : 'ghost'}
+            size="icon"
             className="h-7 w-7"
             onClick={() => setDeviceMode('mobile')}
           >
             <Smartphone className="h-3.5 w-3.5" />
           </Button>
         </div>
-        
+
         <div className="flex items-center gap-1">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
               className="w-3 h-3"
@@ -167,7 +204,7 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
           </Button>
         </div>
       </div>
-      
+
       {/* Preview Content */}
       <div className="flex-1 overflow-auto bg-background p-4">
         {error ? (
@@ -177,7 +214,28 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
           </div>
         ) : (
           <div className={cn("min-h-full bg-card rounded-lg border border-border p-4", getDeviceStyles())}>
-            {previewContent}
+            {uiRoot ? (
+              <div className="sebian-ui-root">
+                {renderNode(uiRoot)}
+              </div>
+            ) : (
+              <div className="text-center p-8">
+                {output.length > 0 ? (
+                  <div className="text-left">
+                    <p className="text-xs text-muted-foreground mb-2">Output:</p>
+                    <pre className="text-sm text-foreground bg-secondary/50 p-3 rounded-lg whitespace-pre-wrap">
+                      {output.join('\n')}
+                    </pre>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-4xl mb-4">✅</div>
+                    <p className="text-foreground font-medium">Code compiled successfully!</p>
+                    <p className="text-sm text-muted-foreground mt-2">No UI rendered</p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
