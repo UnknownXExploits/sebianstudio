@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Maximize2, Smartphone, Monitor, Tablet } from 'lucide-react';
+import { RefreshCw, Smartphone, Monitor, Tablet } from 'lucide-react';
 import { compile } from '@/sebian/compiler';
 import { SebianVM } from '@/sebian/vm/vm';
 import { cn } from '@/lib/utils';
-
 interface PreviewPanelProps {
   code: string;
 }
@@ -183,6 +182,3 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
     </div>
   );
 }
-
-// Import React at the top level for the component to work
-import React from 'react';
