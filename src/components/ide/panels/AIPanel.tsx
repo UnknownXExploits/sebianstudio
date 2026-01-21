@@ -122,93 +122,63 @@ Respond with JSON: { "code": "sebian code here", "explanation": "brief explanati
   const generateFallbackCode = (prompt: string): string => {
     const lower = prompt.toLowerCase();
     
+    // Official Counter App example
     if (lower.includes('counter')) {
-      return `// Counter App - Sebian Example
-Import SebianVM from Sebian
-Import UI from sebian
+      return `// Counter App - Official Sebian Example
 
-// State
-local count = 0
+// State variable
+let count = 0
 
-// Functions
-function increment() [
+// Increment function
+fun increment() {
   count = count + 1
-  updateDisplay()
-]
+  print("Count: " + count)
+}
 
-function decrement() [
+// Decrement function  
+fun decrement() {
   count = count - 1
-  updateDisplay()
-]
+  print("Count: " + count)
+}
 
-function updateDisplay() [
-  from ui import setText
-  setText("counter-display", count)
-]
-
-// UI Layout
-Create container [
-  style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 32px;"
-]
-
-Create text [
-  id="counter-display"
-  content="0"
-  style="font-size: 48px; font-weight: bold; color: #00ff88;"
-]
-
-Create row [
-  style="display: flex; gap: 12px;"
-]
-
-Create button [
-  text="-"
-  style="width: 60px; height: 60px; font-size: 24px; background: #ff4444; border-radius: 8px;"
-  onClick.function=decrement
-]
-
-Create button [
-  text="+"
-  style="width: 60px; height: 60px; font-size: 24px; background: #00ff88; border-radius: 8px;"
-  onClick.function=increment
-]
-
-// Render
-from ui import render
-render(container)`;
+// Test the counter
+print("Counter initialized at: " + count)
+increment()
+increment()
+increment()
+decrement()
+print("Final count: " + count)`;
     }
     
-    if (lower.includes('button')) {
-      return `// Button Example - Sebian
-Import SebianVM from Sebian
-Import UI from sebian
+    // Button/click example
+    if (lower.includes('button') || lower.includes('click')) {
+      return `// Button Click Example - Sebian
 
-function handleClick() [
-  from ui import alert
-  alert("Button clicked!")
-]
+fun handleClick() {
+  print("Button was clicked!")
+}
 
-Create button [
-  text="Click Me"
-  style="padding: 16px 32px; background: #00ff88; border-radius: 8px; font-weight: bold;"
-  onClick.function=handleClick
-]
-
-from ui import render
-render(button)`;
+// Simulate button click
+print("Simulating button click...")
+handleClick()
+handleClick()
+print("Done!")`;
     }
     
-    return `// Sebian Template
-Import SebianVM from Sebian
-Import UI from sebian
+    // Hello world default
+    return `// Hello Sebian - Official Example
 
-Create text [
-  content="Hello, Sebian!"
-  style="font-size: 24px; color: #00ff88; font-weight: bold;"
-]
+print("Hello, Sebian!")
+print("Welcome to Sebian Studio")
 
-from ui import render
-render(text)`;
+// Variables
+let name = "World"
+print("Hello, " + name + "!")
+
+// Math
+let x = 10
+let y = 5
+print("Sum: " + (x + y))`;
   };
 
   const copyCode = (code: string) => {

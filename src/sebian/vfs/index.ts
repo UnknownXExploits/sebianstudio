@@ -77,20 +77,12 @@ class VirtualFileSystem {
     this.mkdir('/src', project.root);
     this.mkdir('/assets', project.root);
     
-    // Create main.seb
+    // Create main.seb with official working example
     const mainContent = `// ${name} - Main Entry Point
-Import SebianVM from Sebian
-Import UI from sebian
+// Official Sebian Hello World
 
-// Your Sebian code starts here
-Create text
-[
-  content= "Hello, Sebian!"
-  style= "font-size: 24px; color: #00ff88;"
-]
-
-from ui import render
-render(text)
+print("Hello, Sebian!")
+print("Welcome to Sebian Studio")
 `;
     this.writeFile('/src/main.seb', mainContent, project.root);
     
