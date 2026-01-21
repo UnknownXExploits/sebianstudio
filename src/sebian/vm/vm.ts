@@ -73,6 +73,8 @@ export class SebianVM {
   }
 
   private loadStandardLibrary(): void {
+    let uiModule: SebianModule | null = null;
+
     // Load core module
     const coreModule = createNativeModule('core', this);
     this.state.modules.set('core', coreModule);
@@ -97,9 +99,8 @@ export class SebianVM {
     
     // Load UI module
     if (this.hasCapability('ui')) {
-      const uiModule = createNativeModule('ui', this);
+      uiModule = createNativeModule('ui', this);
       this.state.modules.set('ui', uiModule);
-      this.state.modules.set('sebian', uiModule); // Alias
     }
     
     // Load fs module
@@ -123,6 +124,22 @@ export class SebianVM {
     // Load Sebian special module for sandbox control
     const sebianVMModule = this.createSebianVMModule();
     this.state.modules.set('Sebian', sebianVMModule);
+
+    // Convenience module name used by examples: expose both UI + SebianVM tools
+    if (uiModule) {
+      const merged = new Map<string, SebianValue>();
+
+      // UI exports first
+      uiModule.exports.forEach((v, k) => merged.set(k, v));
+      // Add SebianVM tools (and any future exports)
+      sebianVMModule.exports.forEach((v, k) => merged.set(k, v));
+
+      this.state.modules.set('sebian', {
+        name: 'sebian',
+        exports: merged,
+        loaded: true,
+      });
+    }
   }
 
   private createSebianVMModule(): SebianModule {
