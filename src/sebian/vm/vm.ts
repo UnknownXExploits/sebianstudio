@@ -10,6 +10,7 @@ import {
   SebianClosure, 
   SebianFunction,
   SebianUINode,
+  SebianModule,
   SandboxConfig,
   SandboxLevel,
   SANDBOX_LEVEL_CAPABILITIES,
