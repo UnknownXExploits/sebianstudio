@@ -385,10 +385,15 @@ export class SebianVM {
       case OpCode.OP_GET_PROP: {
         const propName = this.getConstantString(chunk, operands[0]);
         const obj = this.pop();
-        if (obj.type !== 'object' && obj.type !== 'ui_node') {
+        if (obj.type !== 'object' && obj.type !== 'ui_node' && obj.type !== 'module') {
           throw new Error(`Cannot get property '${propName}' of ${obj.type}`);
         }
-        const props = obj.type === 'object' ? obj.value : obj.value.props;
+        const props =
+          obj.type === 'object'
+            ? obj.value
+            : obj.type === 'ui_node'
+              ? obj.value.props
+              : obj.value.exports;
         const value = props.get(propName) ?? { type: 'null' as const };
         this.push(value);
         break;
@@ -398,10 +403,15 @@ export class SebianVM {
         const propName = this.getConstantString(chunk, operands[0]);
         const value = this.pop();
         const obj = this.pop();
-        if (obj.type !== 'object' && obj.type !== 'ui_node') {
+        if (obj.type !== 'object' && obj.type !== 'ui_node' && obj.type !== 'module') {
           throw new Error(`Cannot set property '${propName}' of ${obj.type}`);
         }
-        const props = obj.type === 'object' ? obj.value : obj.value.props;
+        const props =
+          obj.type === 'object'
+            ? obj.value
+            : obj.type === 'ui_node'
+              ? obj.value.props
+              : obj.value.exports;
         props.set(propName, value);
         this.push(obj);
         break;
