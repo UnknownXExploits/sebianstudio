@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Smartphone, Monitor, Tablet } from 'lucide-react';
-import { compile } from '@/sebian/compiler';
-import { SebianVM } from '@/sebian/vm/vm';
 import { cn } from '@/lib/utils';
 
 interface PreviewPanelProps {
@@ -23,10 +21,14 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
     }
   }, [code, autoRefresh]);
 
-  const refreshPreview = () => {
+  const refreshPreview = async () => {
     setError(null);
     
     try {
+      // Dynamic import to avoid module resolution issues
+      const { compile } = await import('@/sebian/compiler');
+      const { SebianVM } = await import('@/sebian/vm/vm');
+      
       const result = compile(code);
       
       if (!result.success || !result.chunk) {
@@ -39,7 +41,6 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
       const vm = new SebianVM();
       vm.run(result.chunk);
       
-      // For now, show a placeholder since getUIRoot needs to be added to VM
       setPreviewContent(
         <div className="text-center p-8">
           <div className="text-4xl mb-4">✅</div>
@@ -48,7 +49,7 @@ export function PreviewPanel({ code }: PreviewPanelProps) {
         </div>
       );
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Unknown error');
     }
   };
 
