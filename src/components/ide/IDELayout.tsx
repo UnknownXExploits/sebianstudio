@@ -91,147 +91,204 @@ export function IDELayout() {
     );
   }
 
+  const handleReplaceCode = (code: string) => {
+    setFileContent(code);
+    if (currentFile) {
+      vfs.writeFile(currentFile, code);
+    }
+    handleConsoleLog('✨ Code replaced by AI');
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <IDESidebar onFileSelect={handleFileSelect} currentFile={currentFile} />
+        {/* Sidebar - hidden on mobile */}
+        <div className="hidden md:block">
+          <IDESidebar onFileSelect={handleFileSelect} currentFile={currentFile} />
+        </div>
         
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top Bar */}
-          <header className="h-12 border-b border-border flex items-center justify-between px-4 bg-card">
+          <header className="h-10 md:h-12 border-b border-border flex items-center justify-between px-2 md:px-4 bg-card">
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 text-primary font-bold">
-                <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
-                  <span className="text-primary-foreground text-xs font-bold">S</span>
+              <div className="flex items-center gap-1.5 text-primary font-bold">
+                <div className="w-5 h-5 md:w-6 md:h-6 bg-primary rounded flex items-center justify-center">
+                  <span className="text-primary-foreground text-[10px] md:text-xs font-bold">S</span>
                 </div>
-                <span>Sebian Studio</span>
+                <span className="text-sm md:text-base">Sebian</span>
               </div>
-              <span className="text-muted-foreground text-sm">v1.0.0</span>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <SandboxStatus />
-              <Button variant="ghost" size="icon">
-                <Settings className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8">
+                <Settings className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </Button>
             </div>
           </header>
 
-          {/* Main Content */}
+          {/* Main Content - Stack on mobile, side-by-side on desktop */}
           <div className="flex-1 flex flex-col min-h-0">
-            <ResizablePanelGroup direction="vertical" className="flex-1">
-              {/* Top Section: Editor + Right Panel */}
-              <ResizablePanel defaultSize={70} minSize={30}>
-                <ResizablePanelGroup direction="horizontal">
-                  {/* Editor */}
-                  <ResizablePanel defaultSize={55} minSize={30}>
-                    <EditorPanel
-                      filePath={currentFile}
-                      content={fileContent}
-                      onChange={handleFileChange}
-                      onRun={handleConsoleLog}
-                    />
-                  </ResizablePanel>
-                  
-                  <ResizableHandle withHandle />
-                  
-                  {/* Right Panel */}
-                  <ResizablePanel defaultSize={45} minSize={20}>
-                    <div className="h-full flex flex-col bg-card">
-                      <Tabs value={rightPanel} onValueChange={(v) => setRightPanel(v as any)} className="flex-1 flex flex-col">
-                        <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-2">
-                          <TabsTrigger value="preview" className="data-[state=active]:bg-background">
-                            <Play className="h-3.5 w-3.5 mr-1.5" />
-                            Preview
+            <Tabs defaultValue="editor" className="flex-1 flex flex-col md:hidden">
+              {/* Mobile Tab Navigation */}
+              <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-1 h-9">
+                <TabsTrigger value="editor" className="data-[state=active]:bg-background text-xs h-7">
+                  <Code className="h-3 w-3 mr-1" />
+                  Code
+                </TabsTrigger>
+                <TabsTrigger value="preview" className="data-[state=active]:bg-background text-xs h-7">
+                  <Play className="h-3 w-3 mr-1" />
+                  Run
+                </TabsTrigger>
+                <TabsTrigger value="ai" className="data-[state=active]:bg-background text-xs h-7">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  AI
+                </TabsTrigger>
+                <TabsTrigger value="console" className="data-[state=active]:bg-background text-xs h-7">
+                  <Terminal className="h-3 w-3 mr-1" />
+                  Log
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="editor" className="flex-1 m-0 mt-0 min-h-0">
+                <EditorPanel
+                  filePath={currentFile}
+                  content={fileContent}
+                  onChange={handleFileChange}
+                  onRun={handleConsoleLog}
+                />
+              </TabsContent>
+              <TabsContent value="preview" className="flex-1 m-0 mt-0 min-h-0">
+                <PreviewPanel code={fileContent} />
+              </TabsContent>
+              <TabsContent value="ai" className="flex-1 m-0 mt-0 min-h-0">
+                <AIPanel 
+                  onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} 
+                  onReplaceCode={handleReplaceCode}
+                  currentCode={fileContent}
+                />
+              </TabsContent>
+              <TabsContent value="console" className="flex-1 m-0 mt-0 min-h-0">
+                <ConsolePanel output={consoleOutput} onClear={clearConsole} />
+              </TabsContent>
+            </Tabs>
+
+            {/* Desktop Layout */}
+            <div className="hidden md:flex md:flex-1 md:flex-col md:min-h-0">
+              <ResizablePanelGroup direction="vertical" className="flex-1">
+                <ResizablePanel defaultSize={70} minSize={30}>
+                  <ResizablePanelGroup direction="horizontal">
+                    <ResizablePanel defaultSize={55} minSize={30}>
+                      <EditorPanel
+                        filePath={currentFile}
+                        content={fileContent}
+                        onChange={handleFileChange}
+                        onRun={handleConsoleLog}
+                      />
+                    </ResizablePanel>
+                    
+                    <ResizableHandle withHandle />
+                    
+                    <ResizablePanel defaultSize={45} minSize={20}>
+                      <div className="h-full flex flex-col bg-card">
+                        <Tabs value={rightPanel} onValueChange={(v) => setRightPanel(v as any)} className="flex-1 flex flex-col">
+                          <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-2">
+                            <TabsTrigger value="preview" className="data-[state=active]:bg-background">
+                              <Play className="h-3.5 w-3.5 mr-1.5" />
+                              Preview
+                            </TabsTrigger>
+                            <TabsTrigger value="ai" className="data-[state=active]:bg-background">
+                              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                              AI
+                            </TabsTrigger>
+                            <TabsTrigger value="debug" className="data-[state=active]:bg-background">
+                              <Bug className="h-3.5 w-3.5 mr-1.5" />
+                              Debug
+                            </TabsTrigger>
+                            <TabsTrigger value="commands" className="data-[state=active]:bg-background">
+                              <Search className="h-3.5 w-3.5 mr-1.5" />
+                              Cmds
+                            </TabsTrigger>
+                            <TabsTrigger value="docs" className="data-[state=active]:bg-background">
+                              <BookOpen className="h-3.5 w-3.5 mr-1.5" />
+                              Docs
+                            </TabsTrigger>
+                          </TabsList>
+                          
+                          <TabsContent value="preview" className="flex-1 m-0 mt-0">
+                            <PreviewPanel code={fileContent} />
+                          </TabsContent>
+                          <TabsContent value="ai" className="flex-1 m-0 mt-0">
+                            <AIPanel 
+                              onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} 
+                              onReplaceCode={handleReplaceCode}
+                              currentCode={fileContent}
+                            />
+                          </TabsContent>
+                          <TabsContent value="debug" className="flex-1 m-0 mt-0">
+                            <DebugPanel />
+                          </TabsContent>
+                          <TabsContent value="commands" className="flex-1 m-0 mt-0">
+                            <CommandExplorer />
+                          </TabsContent>
+                          <TabsContent value="docs" className="flex-1 m-0 mt-0">
+                            <DocsPanel />
+                          </TabsContent>
+                        </Tabs>
+                      </div>
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
+                </ResizablePanel>
+                
+                <ResizableHandle withHandle />
+                
+                <ResizablePanel 
+                  defaultSize={30} 
+                  minSize={isBottomExpanded ? 15 : 5}
+                  maxSize={isBottomExpanded ? 50 : 5}
+                >
+                  <div className="h-full flex flex-col bg-card">
+                    <div className="flex items-center justify-between border-b border-border bg-secondary/30 px-2">
+                      <Tabs value={bottomPanel} onValueChange={(v) => setBottomPanel(v as any)} className="flex-1">
+                        <TabsList className="bg-transparent h-9">
+                          <TabsTrigger value="console" className="data-[state=active]:bg-background text-xs">
+                            <Code className="h-3.5 w-3.5 mr-1.5" />
+                            Console
                           </TabsTrigger>
-                          <TabsTrigger value="debug" className="data-[state=active]:bg-background">
-                            <Bug className="h-3.5 w-3.5 mr-1.5" />
-                            Debug
-                          </TabsTrigger>
-                          <TabsTrigger value="ai" className="data-[state=active]:bg-background">
-                            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                            AI
-                          </TabsTrigger>
-                          <TabsTrigger value="commands" className="data-[state=active]:bg-background">
-                            <Search className="h-3.5 w-3.5 mr-1.5" />
-                            Commands
-                          </TabsTrigger>
-                          <TabsTrigger value="docs" className="data-[state=active]:bg-background">
-                            <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-                            Docs
+                          <TabsTrigger value="terminal" className="data-[state=active]:bg-background text-xs">
+                            <Terminal className="h-3.5 w-3.5 mr-1.5" />
+                            Terminal
                           </TabsTrigger>
                         </TabsList>
-                        
-                        <TabsContent value="preview" className="flex-1 m-0 mt-0">
-                          <PreviewPanel code={fileContent} />
-                        </TabsContent>
-                        <TabsContent value="debug" className="flex-1 m-0 mt-0">
-                          <DebugPanel />
-                        </TabsContent>
-                        <TabsContent value="ai" className="flex-1 m-0 mt-0">
-                          <AIPanel onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} />
-                        </TabsContent>
-                        <TabsContent value="commands" className="flex-1 m-0 mt-0">
-                          <CommandExplorer />
-                        </TabsContent>
-                        <TabsContent value="docs" className="flex-1 m-0 mt-0">
-                          <DocsPanel />
-                        </TabsContent>
                       </Tabs>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-7 w-7"
+                        onClick={() => setIsBottomExpanded(!isBottomExpanded)}
+                      >
+                        {isBottomExpanded ? (
+                          <Minimize2 className="h-3.5 w-3.5" />
+                        ) : (
+                          <Maximize2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
                     </div>
-                  </ResizablePanel>
-                </ResizablePanelGroup>
-              </ResizablePanel>
-              
-              <ResizableHandle withHandle />
-              
-              {/* Bottom Section: Console / Terminal */}
-              <ResizablePanel 
-                defaultSize={30} 
-                minSize={isBottomExpanded ? 15 : 5}
-                maxSize={isBottomExpanded ? 50 : 5}
-              >
-                <div className="h-full flex flex-col bg-card">
-                  <div className="flex items-center justify-between border-b border-border bg-secondary/30 px-2">
-                    <Tabs value={bottomPanel} onValueChange={(v) => setBottomPanel(v as any)} className="flex-1">
-                      <TabsList className="bg-transparent h-9">
-                        <TabsTrigger value="console" className="data-[state=active]:bg-background text-xs">
-                          <Code className="h-3.5 w-3.5 mr-1.5" />
-                          Console
-                        </TabsTrigger>
-                        <TabsTrigger value="terminal" className="data-[state=active]:bg-background text-xs">
-                          <Terminal className="h-3.5 w-3.5 mr-1.5" />
-                          Terminal
-                        </TabsTrigger>
-                      </TabsList>
-                    </Tabs>
                     
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7"
-                      onClick={() => setIsBottomExpanded(!isBottomExpanded)}
-                    >
-                      {isBottomExpanded ? (
-                        <Minimize2 className="h-3.5 w-3.5" />
-                      ) : (
-                        <Maximize2 className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
+                    {isBottomExpanded && (
+                      <div className="flex-1 min-h-0">
+                        {bottomPanel === 'console' ? (
+                          <ConsolePanel output={consoleOutput} onClear={clearConsole} />
+                        ) : (
+                          <TerminalPanel onLog={handleConsoleLog} />
+                        )}
+                      </div>
+                    )}
                   </div>
-                  
-                  {isBottomExpanded && (
-                    <div className="flex-1 min-h-0">
-                      {bottomPanel === 'console' ? (
-                        <ConsolePanel output={consoleOutput} onClear={clearConsole} />
-                      ) : (
-                        <TerminalPanel onLog={handleConsoleLog} />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </div>
           </div>
         </div>
       </div>
