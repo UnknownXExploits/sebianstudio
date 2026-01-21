@@ -77,12 +77,28 @@ class VirtualFileSystem {
     this.mkdir('/src', project.root);
     this.mkdir('/assets', project.root);
     
-    // Create main.seb with official working example
+    // Create main.seb (Sebian source, executed by SebianVM bytecode interpreter)
+    // NOTE: Create statements auto-render via OP_UI_RENDER; no extra render(text) call needed.
     const mainContent = `// ${name} - Main Entry Point
-// Official Sebian Hello World
 
-print("Hello, Sebian!")
-print("Welcome to Sebian Studio")
+from core import print
+
+// Simple UI example
+Create container app [
+  style="display: flex; flex-direction: column; gap: 12px; padding: 24px;"
+]
+
+Create text title [
+  content="Hello, Sebian!"
+  style="font-size: 24px; font-weight: 600;"
+]
+
+Create text subtitle [
+  content="This UI is produced by Sebian bytecode running in SebianVM."
+  style="opacity: 0.8;"
+]
+
+print("Sebian program started")
 `;
     this.writeFile('/src/main.seb', mainContent, project.root);
     

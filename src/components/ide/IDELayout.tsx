@@ -49,8 +49,32 @@ export function IDELayout() {
       }
       
       const content = vfs.readFile('/src/main.seb');
-      if (content) {
-        setFileContent(content);
+
+      // One-time migration for legacy templates that referenced an undefined global `text`
+      // (e.g. `render(text)` without `Create text text [...]`).
+      const looksLikeLegacy =
+        !!content &&
+        (content.includes('render(text)') ||
+          content.includes('render(text)\n') ||
+          content.includes('Create text\n') ||
+          content.includes('Create text\r\n'));
+
+      if (looksLikeLegacy) {
+        const migrated = `// Main Entry Point (migrated)
+
+from core import print
+
+Create text hello [
+  content="Hello, Sebian!"
+  style="font-size: 24px; font-weight: 600;"
+]
+
+print("Template migrated: removed legacy render(text)")
+`;
+        vfs.writeFile('/src/main.seb', migrated);
+        setFileContent(migrated);
+      } else {
+        setFileContent(content || '');
       }
       
       setIsInitialized(true);

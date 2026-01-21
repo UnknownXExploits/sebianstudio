@@ -122,63 +122,87 @@ Respond with JSON: { "code": "sebian code here", "explanation": "brief explanati
   const generateFallbackCode = (prompt: string): string => {
     const lower = prompt.toLowerCase();
     
-    // Official Counter App example
+    // Counter App (Sebian syntax, no JS)
     if (lower.includes('counter')) {
-      return `// Counter App - Official Sebian Example
+      return `// Counter App - Sebian
 
-// State variable
-let count = 0
+from core import print
 
-// Increment function
-fun increment() {
+local count = 0
+
+function increment() [
   count = count + 1
-  print("Count: " + count)
-}
+  print("count=" + count)
+]
 
-// Decrement function  
-fun decrement() {
+function decrement() [
   count = count - 1
-  print("Count: " + count)
-}
+  print("count=" + count)
+]
 
-// Test the counter
-print("Counter initialized at: " + count)
-increment()
-increment()
-increment()
-decrement()
-print("Final count: " + count)`;
+// UI (Create auto-renders)
+Create container app [
+  style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px;"
+]
+
+Create text label [
+  content="Counter"
+  style="font-size: 18px; font-weight: 600;"
+]
+
+Create text display [
+  content="0"
+  style="font-size: 40px; font-weight: 700;"
+]
+
+Create row controls [
+  style="display: flex; gap: 10px;"
+]
+
+Create button downBtn [
+  text="-"
+  style="padding: 10px 18px; border-radius: 10px;"
+  onClick.function=decrement
+]
+
+Create button upBtn [
+  text="+"
+  style="padding: 10px 18px; border-radius: 10px;"
+  onClick.function=increment
+]
+
+print("Counter ready")`;
     }
     
     // Button/click example
     if (lower.includes('button') || lower.includes('click')) {
-      return `// Button Click Example - Sebian
+      return `// Button Example - Sebian
 
-fun handleClick() {
-  print("Button was clicked!")
-}
+from core import print
 
-// Simulate button click
-print("Simulating button click...")
-handleClick()
-handleClick()
-print("Done!")`;
+function handleClick() [
+  print("Button clicked")
+]
+
+Create button myButton [
+  text="Click me"
+  style="padding: 12px 18px; border-radius: 10px;"
+  onClick.function=handleClick
+]
+`;
     }
     
     // Hello world default
-    return `// Hello Sebian - Official Example
+    return `// Hello Sebian
 
-print("Hello, Sebian!")
-print("Welcome to Sebian Studio")
+from core import print
 
-// Variables
-let name = "World"
-print("Hello, " + name + "!")
+Create text hello [
+  content="Hello, Sebian!"
+  style="font-size: 24px; font-weight: 600;"
+]
 
-// Math
-let x = 10
-let y = 5
-print("Sum: " + (x + y))`;
+print("Hello from SebianVM")`;
   };
 
   const copyCode = (code: string) => {
