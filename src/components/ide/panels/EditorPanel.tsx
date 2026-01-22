@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useMemo, useDeferredValue } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Play, Save, Copy, Undo, Redo } from 'lucide-react';
@@ -14,6 +14,23 @@ interface EditorPanelProps {
 }
 
 // Simple syntax highlighting for Sebian
+const SEBIAN_HIGHLIGHT_PATTERNS: Array<{ regex: RegExp; className: string }> = [
+  { regex: /^(\/\/.*)/, className: 'syntax-comment' },
+  {
+    // Sebian keywords / statements (explicitly NOT JavaScript)
+    regex: /^(Import|from|import|Create|Repeat|local|function|if|else|while|for|return|do)\b/,
+    className: 'syntax-keyword',
+  },
+  { regex: /^("[^"]*"|'[^']*')/, className: 'syntax-string' },
+  { regex: /^(\d+\.?\d*)/, className: 'syntax-number' },
+  { regex: /^(true|false|null)\b/, className: 'syntax-keyword' },
+  { regex: /^([A-Z][a-zA-Z0-9]*)\b/, className: 'syntax-type' },
+  { regex: /^(\.[a-zA-Z_][a-zA-Z0-9_]*)/, className: 'syntax-property' },
+  { regex: /^([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/, className: 'syntax-function' },
+  { regex: /^([=+\-*/<>!&|]+)/, className: 'syntax-operator' },
+  { regex: /^([\[\]{}()])/, className: 'syntax-operator' },
+];
+
 function highlightSyntax(code: string): React.ReactNode[] {
   const lines = code.split('\n');
   
@@ -22,24 +39,10 @@ function highlightSyntax(code: string): React.ReactNode[] {
     let remaining = line;
     let position = 0;
     
-    // Patterns for syntax highlighting
-    const patterns: Array<{ regex: RegExp; className: string }> = [
-      { regex: /^(\/\/.*)/, className: 'syntax-comment' },
-      { regex: /^(Import|from|import|Create|Repeat|local|function|if|else|while|return|do)\b/, className: 'syntax-keyword' },
-      { regex: /^("[^"]*"|'[^']*')/, className: 'syntax-string' },
-      { regex: /^(\d+\.?\d*)/, className: 'syntax-number' },
-      { regex: /^(true|false|null)\b/, className: 'syntax-keyword' },
-      { regex: /^([A-Z][a-zA-Z0-9]*)\b/, className: 'syntax-type' },
-      { regex: /^(\.[a-zA-Z_][a-zA-Z0-9_]*)/, className: 'syntax-property' },
-      { regex: /^([a-zA-Z_][a-zA-Z0-9_]*)\s*(?=\()/, className: 'syntax-function' },
-      { regex: /^([=+\-*/<>!&|]+)/, className: 'syntax-operator' },
-      { regex: /^([\[\]{}()])/, className: 'syntax-operator' },
-    ];
-    
     while (remaining.length > 0) {
       let matched = false;
       
-      for (const { regex, className } of patterns) {
+      for (const { regex, className } of SEBIAN_HIGHLIGHT_PATTERNS) {
         const match = remaining.match(regex);
         if (match) {
           tokens.push(
@@ -56,7 +59,9 @@ function highlightSyntax(code: string): React.ReactNode[] {
       
       if (!matched) {
         // Handle whitespace and other characters
-        const match = remaining.match(/^(\s+|[^\s]+?(?=\s|Import|from|Create|Repeat|local|function|if|else|while|return|do|"|'|\d|[A-Z]|\.|[=+\-*/<>!&|]|[\[\]{}()]|$))/);
+        const match = remaining.match(
+          /^(\s+|[^\s]+?(?=\s|Import|from|import|Create|Repeat|local|function|if|else|while|for|return|do|"|'|\d|[A-Z]|\.|[=+\-*/<>!&|]|[\[\]{}()]|$))/
+        );
         if (match) {
           tokens.push(
             <span key={`${lineIndex}-${position}`}>{match[0]}</span>
@@ -80,6 +85,18 @@ export function EditorPanel({ filePath, content, onChange, onRun }: EditorPanelP
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const highlightRef = useRef<HTMLDivElement>(null);
+
+  // Defer expensive highlighting so paste / fast typing doesn't lock the UI.
+  const deferredContent = useDeferredValue(content);
+
+  const highlighted = useMemo(() => {
+    // Safeguard: very large pastes can freeze the browser if we tokenize every character.
+    // Keep editing responsive by skipping highlighting in that case.
+    if (deferredContent.length > 50_000 || deferredContent.split('\n').length > 2_000) {
+      return null;
+    }
+    return highlightSyntax(deferredContent);
+  }, [deferredContent]);
 
   const lines = content.split('\n');
   const lineCount = lines.length;
@@ -224,11 +241,17 @@ export function EditorPanel({ filePath, content, onChange, onRun }: EditorPanelP
           className="absolute left-12 top-0 right-0 bottom-0 overflow-hidden pointer-events-none"
         >
           <div className="p-3 whitespace-pre-wrap break-all">
-            {highlightSyntax(content).map((lineTokens, i) => (
-              <div key={i} className="leading-6 min-h-6">
-                {lineTokens}
+            {highlighted ? (
+              highlighted.map((lineTokens, i) => (
+                <div key={i} className="leading-6 min-h-6">
+                  {lineTokens}
+                </div>
+              ))
+            ) : (
+              <div className="leading-6 text-muted-foreground text-xs">
+                Highlighting disabled for large files (edit is still live).
               </div>
-            ))}
+            )}
           </div>
         </div>
         

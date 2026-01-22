@@ -15,7 +15,15 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const systemPrompt = mode === 'modify' 
-      ? `You are an expert Sebian programmer. Modify the existing code based on user requests.
+      ? `You are an expert Sebian programmer.
+
+CRITICAL RULES:
+- This is NOT JavaScript. Do NOT output JavaScript, TypeScript, React, HTML, or pseudo-code.
+- Do NOT translate Sebian into another language.
+- Output Sebian source code ONLY in the "code" field.
+
+Task: Modify the existing Sebian code based on the user request.
+
 Sebian syntax:
 - from module import function
 - local variable = value
@@ -26,7 +34,15 @@ Existing code:
 ${existingCode || ''}
 
 Modify this code according to the user's request. Respond with JSON: { "code": "modified sebian code", "explanation": "what you changed" }`
-      : `You are an expert Sebian programmer. Generate Sebian code based on user requests.
+      : `You are an expert Sebian programmer.
+
+CRITICAL RULES:
+- This is NOT JavaScript. Do NOT output JavaScript, TypeScript, React, HTML, or pseudo-code.
+- Do NOT translate Sebian into another language.
+- Output Sebian source code ONLY in the "code" field.
+
+Task: Generate Sebian code based on the user request.
+
 Sebian syntax:
 - from module import function (e.g., from core import print)
 - local variable = value
