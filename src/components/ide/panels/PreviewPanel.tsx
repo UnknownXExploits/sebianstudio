@@ -28,11 +28,13 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [output, setOutput] = useState<string[]>([]);
   const lastRunTriggerRef = useRef<number>(runTrigger);
+  const vmRef = useRef<any>(null);
 
   const refreshPreview = useCallback(async () => {
     setError(null);
     setUiRoot(null);
     setOutput([]);
+    vmRef.current = null;
 
     try {
       // Dynamic imports to avoid circular dependencies
@@ -49,6 +51,7 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
       }
 
       const vm = new SebianVM();
+      vmRef.current = vm;
 
       // Capture output
       vm.setOutputHandler((msg: string) => {
@@ -86,6 +89,18 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
     }
   }, [code, autoRefresh, refreshPreview, runTrigger]);
 
+  // Dispatch UI event to VM
+  const handleUIEvent = useCallback((nodeId: string, eventName: string, eventData: any = null) => {
+    if (vmRef.current && typeof vmRef.current.dispatchUIEvent === 'function') {
+      try {
+        vmRef.current.dispatchUIEvent(nodeId, eventName, eventData);
+      } catch (err: any) {
+        console.error('UI event error:', err);
+        onLog?.(`❌ Event error: ${err.message}`);
+      }
+    }
+  }, [onLog]);
+
   // Render a SebianUINode to React
   const renderNode = (node: SebianUINode): React.ReactNode => {
     const props: Record<string, any> = { key: node.id };
@@ -119,6 +134,31 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
     });
 
     props.style = style;
+
+    // Attach event handlers from node.eventHandlers
+    if (node.eventHandlers && node.eventHandlers.size > 0) {
+      node.eventHandlers.forEach((handler, eventName) => {
+        // Map Sebian event names to React event props
+        const reactEventMap: Record<string, string> = {
+          'click': 'onClick',
+          'onClick': 'onClick',
+          'change': 'onChange',
+          'input': 'onInput',
+          'submit': 'onSubmit',
+          'focus': 'onFocus',
+          'blur': 'onBlur',
+          'mouseenter': 'onMouseEnter',
+          'mouseleave': 'onMouseLeave',
+        };
+        
+        const reactEventName = reactEventMap[eventName] || `on${eventName.charAt(0).toUpperCase()}${eventName.slice(1)}`;
+        
+        props[reactEventName] = (e: React.SyntheticEvent) => {
+          e.preventDefault?.();
+          handleUIEvent(node.id, eventName, { type: 'null' });
+        };
+      });
+    }
 
     // Render children
     const children = node.children.map(child => renderNode(child));
