@@ -21,6 +21,9 @@ interface Message {
   code?: string;
 }
 
+const MAX_MESSAGES = 30;
+const MAX_CODE_CHARS_TO_RENDER = 4000;
+
 export function AIPanel({ onInsertCode, onReplaceCode, onRun, currentCode = '' }: AIPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -31,6 +34,12 @@ export function AIPanel({ onInsertCode, onReplaceCode, onRun, currentCode = '' }
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'generate' | 'modify'>('generate');
+
+  const capMessages = useCallback((next: Message[]) => {
+    if (next.length <= MAX_MESSAGES) return next;
+    // keep the newest messages
+    return next.slice(next.length - MAX_MESSAGES);
+  }, []);
 
   const generateFallbackCode = useCallback((prompt: string): string => {
     const lower = prompt.toLowerCase();
@@ -119,7 +128,7 @@ print("Hello from SebianVM")`;
     const userMessage: Message = { role: 'user', content: input };
     const currentInput = input;
     
-    setMessages(prev => [...prev, userMessage]);
+    setMessages(prev => capMessages([...prev, userMessage]));
     setInput('');
     setIsLoading(true);
 
@@ -134,39 +143,44 @@ print("Hello from SebianVM")`;
 
       if (error) throw error;
 
-      const code = data?.code || generateFallbackCode(currentInput);
+       const code = data?.code || generateFallbackCode(currentInput);
       const explanation = data?.explanation || '✅ Code applied and running!';
-      
-      // Auto-apply and run immediately
-      onReplaceCode(code);
-      setTimeout(() => onRun?.(), 100);
-      
+
       const assistantMessage: Message = {
         role: 'assistant',
         content: explanation,
         code,
       };
-      
-      setMessages(prev => [...prev, assistantMessage]);
+
+       // 1) Update chat UI first (avoids freezing while React lays out a huge code block)
+       setMessages(prev => capMessages([...prev, assistantMessage]));
+
+       // 2) Then apply + run on the next frame to keep the AI panel responsive
+       requestAnimationFrame(() => {
+         onReplaceCode(code);
+         window.setTimeout(() => onRun?.(), 0);
+       });
     } catch (error) {
       console.error('AI error:', error);
       
       // Use fallback on error - auto-apply
       const code = generateFallbackCode(currentInput);
-      
-      onReplaceCode(code);
-      setTimeout(() => onRun?.(), 100);
-      
+
       const fallbackMessage: Message = {
         role: 'assistant',
         content: '⚠️ Using offline template. Applied and running!',
         code,
       };
-      setMessages(prev => [...prev, fallbackMessage]);
+      setMessages(prev => capMessages([...prev, fallbackMessage]));
+
+      requestAnimationFrame(() => {
+        onReplaceCode(code);
+        window.setTimeout(() => onRun?.(), 0);
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, mode, currentCode, generateFallbackCode, onReplaceCode, onRun]);
+  }, [input, isLoading, mode, currentCode, generateFallbackCode, onReplaceCode, onRun, capMessages]);
 
   const copyCode = useCallback((code: string) => {
     navigator.clipboard.writeText(code);
@@ -263,7 +277,9 @@ print("Hello from SebianVM")`;
                       </div>
                     </div>
                     <pre className="p-2 text-[10px] overflow-x-auto max-h-32 leading-tight">
-                      {message.code}
+                      {message.code.length > MAX_CODE_CHARS_TO_RENDER
+                        ? `${message.code.slice(0, MAX_CODE_CHARS_TO_RENDER)}\n\n… (truncated in chat — Copy/Apply uses full code)`
+                        : message.code}
                     </pre>
                   </div>
                 </div>
