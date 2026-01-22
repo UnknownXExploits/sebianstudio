@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Smartphone, Monitor, Tablet } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [output, setOutput] = useState<string[]>([]);
+  const lastRunTriggerRef = useRef<number>(runTrigger);
 
   const refreshPreview = useCallback(async () => {
     setError(null);
@@ -71,9 +72,16 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
     }
   }, [code, onLog]);
 
-  // Run on code change (if auto-refresh) OR when runTrigger changes (from AI apply)
+  // Avoid double-runs when AI both changes `code` and bumps `runTrigger`.
+  // If `runTrigger` changes, it is an explicit run request; otherwise auto-refresh can run on code edits.
   useEffect(() => {
-    if (autoRefresh || runTrigger > 0) {
+    if (runTrigger !== lastRunTriggerRef.current) {
+      lastRunTriggerRef.current = runTrigger;
+      refreshPreview();
+      return;
+    }
+
+    if (autoRefresh) {
       refreshPreview();
     }
   }, [code, autoRefresh, refreshPreview, runTrigger]);
