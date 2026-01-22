@@ -186,7 +186,7 @@ print("Template migrated: removed legacy render(text)")
                 />
               </TabsContent>
               <TabsContent value="preview" className="flex-1 m-0 mt-0 min-h-0">
-                <PreviewPanel code={fileContent} runTrigger={runTrigger} />
+                <PreviewPanel code={fileContent} runTrigger={runTrigger} onLog={handleConsoleLog} />
               </TabsContent>
               <TabsContent value="ai" className="flex-1 m-0 mt-0 min-h-0">
                 <AIPanel 
@@ -244,7 +244,7 @@ print("Template migrated: removed legacy render(text)")
                           </TabsList>
                           
                           <TabsContent value="preview" className="flex-1 m-0 mt-0">
-                            <PreviewPanel code={fileContent} runTrigger={runTrigger} />
+                            <PreviewPanel code={fileContent} runTrigger={runTrigger} onLog={handleConsoleLog} />
                           </TabsContent>
                           <TabsContent value="ai" className="flex-1 m-0 mt-0">
                             <AIPanel 

@@ -29,6 +29,7 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
   const [output, setOutput] = useState<string[]>([]);
   const lastRunTriggerRef = useRef<number>(runTrigger);
   const vmRef = useRef<any>(null);
+  const autoRefreshTimerRef = useRef<number | null>(null);
 
   const refreshPreview = useCallback(async () => {
     setError(null);
@@ -78,6 +79,12 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
   // Avoid double-runs when AI both changes `code` and bumps `runTrigger`.
   // If `runTrigger` changes, it is an explicit run request; otherwise auto-refresh can run on code edits.
   useEffect(() => {
+    // Always clear any pending debounced run
+    if (autoRefreshTimerRef.current) {
+      window.clearTimeout(autoRefreshTimerRef.current);
+      autoRefreshTimerRef.current = null;
+    }
+
     if (runTrigger !== lastRunTriggerRef.current) {
       lastRunTriggerRef.current = runTrigger;
       refreshPreview();
@@ -85,7 +92,10 @@ export function PreviewPanel({ code, onLog, runTrigger = 0 }: PreviewPanelProps)
     }
 
     if (autoRefresh) {
-      refreshPreview();
+      // Debounce auto-refresh so typing/pasting doesn't lock the UI.
+      autoRefreshTimerRef.current = window.setTimeout(() => {
+        refreshPreview();
+      }, 300);
     }
   }, [code, autoRefresh, refreshPreview, runTrigger]);
 
