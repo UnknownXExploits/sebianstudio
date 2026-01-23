@@ -14,42 +14,102 @@ serve(async (req) => {
     const { prompt, mode, existingCode } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    const systemPrompt = mode === 'modify' 
-      ? `You are an expert Sebian programmer.
+    const systemPrompt = mode === 'modify'
+      ? `You are an expert Sebian programmer and must output VALID Sebian every time.
 
-CRITICAL RULES:
-- This is NOT JavaScript. Do NOT output JavaScript, TypeScript, React, HTML, or pseudo-code.
-- Do NOT translate Sebian into another language.
-- Output Sebian source code ONLY in the "code" field.
+ABSOLUTE RULES (non-negotiable):
+- This is NOT JavaScript/TypeScript/React/HTML. NEVER output braces {}, colons :, commas in objects, JSX tags <...>, or arrow functions =>.
+- Return STRICT JSON with exactly: {"code":"...","explanation":"..."}. No markdown.
+- Put Sebian source ONLY inside the JSON field "code".
 
-Task: Modify the existing Sebian code based on the user request.
+Sebian GRAMMAR (use ONLY these forms):
+1) Imports:
+   from core import print
 
-Sebian syntax:
-- from module import function
-- local variable = value
-- function name(args) [ body ]
-- Create type name [ properties... ]
+2) Variables:
+   local name = value
+   name = expression
+
+3) Functions:
+   function name() [
+     // statements
+   ]
+   function name(arg1, arg2) [
+     // statements
+   ]
+   NOTE: parameters are IDENTIFIERS only. No types. No default values.
+
+4) UI nodes:
+   Create <type> <optionalName> [
+     property=value
+     property="string"
+     onClick.function=someFunction
+   ]
+   NOTES:
+   - Properties are ONE per line, NO commas.
+   - Property assignment MUST use '=' (not ':').
+   - Nested dot properties are allowed ONLY like: onClick.function=handler
+   - Do NOT invent other event shapes.
+   - Strings MUST be double-quoted.
+
+COMMON PARSER ERRORS TO AVOID:
+- "Expected property name" / "Expected '=' after property": means you used ':' or commas or JSON-like syntax. Don't.
+- "Expected '(' after 'function'": always write: function name(args) [ ... ]
+
+TASK: Modify the existing Sebian code to satisfy the user.
 
 Existing code:
 ${existingCode || ''}
 
-Modify this code according to the user's request. Respond with JSON: { "code": "modified sebian code", "explanation": "what you changed" }`
-      : `You are an expert Sebian programmer.
+Before returning, SELF-CHECK:
+1) Every Create block has [ ... ] and each property line uses '='.
+2) Every function has () then [ ... ].
+3) No JS/TS tokens, no braces, no JSX.
 
-CRITICAL RULES:
-- This is NOT JavaScript. Do NOT output JavaScript, TypeScript, React, HTML, or pseudo-code.
-- Do NOT translate Sebian into another language.
-- Output Sebian source code ONLY in the "code" field.
+Respond with JSON: {"code":"modified sebian code","explanation":"what you changed"}`
+      : `You are an expert Sebian programmer and must output VALID Sebian every time.
 
-Task: Generate Sebian code based on the user request.
+ABSOLUTE RULES (non-negotiable):
+- This is NOT JavaScript/TypeScript/React/HTML. NEVER output braces {}, colons :, commas in objects, JSX tags <...>, or arrow functions =>.
+- Return STRICT JSON with exactly: {"code":"...","explanation":"..."}. No markdown.
+- Put Sebian source ONLY inside the JSON field "code".
 
-Sebian syntax:
-- from module import function (e.g., from core import print)
-- local variable = value
-- function name(args) [ body ]
-- Create type name [ properties... ]
+Sebian GRAMMAR (use ONLY these forms):
+1) Imports:
+   from core import print
 
-Example counter app:
+2) Variables:
+   local name = value
+   name = expression
+
+3) Functions:
+   function name() [
+     // statements
+   ]
+   function name(arg1, arg2) [
+     // statements
+   ]
+   NOTE: parameters are IDENTIFIERS only. No types. No default values.
+
+4) UI nodes:
+   Create <type> <optionalName> [
+     property=value
+     property="string"
+     onClick.function=someFunction
+   ]
+   NOTES:
+   - Properties are ONE per line, NO commas.
+   - Property assignment MUST use '=' (not ':').
+   - Nested dot properties are allowed ONLY like: onClick.function=handler
+   - Strings MUST be double-quoted.
+
+COMMON PARSER ERRORS TO AVOID:
+- "Expected property name" / "Expected '=' after property": means you used ':' or commas or JSON-like syntax. Don't.
+- "Expected '(' after 'function'": always write: function name(args) [ ... ]
+
+TASK: Generate Sebian code that satisfies the user.
+
+WORKING EXAMPLE (copy patterns exactly):
 from core import print
 
 local count = 0
@@ -74,7 +134,12 @@ Create button upBtn [
   onClick.function=increment
 ]
 
-Respond with JSON: { "code": "sebian code here", "explanation": "brief explanation" }`;
+Before returning, SELF-CHECK:
+1) Every Create block has [ ... ] and each property line uses '='.
+2) Every function has () then [ ... ].
+3) No JS/TS tokens, no braces, no JSX.
+
+Respond with JSON: {"code":"sebian code here","explanation":"brief explanation"}`;
 
     // Try Lovable AI first
     if (LOVABLE_API_KEY) {
