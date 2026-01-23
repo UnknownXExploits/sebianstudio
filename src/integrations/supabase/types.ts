@@ -73,6 +73,36 @@ export type Database = {
         }
         Relationships: []
       }
+      published_projects: {
+        Row: {
+          created_at: string
+          html_bundle: string | null
+          id: string
+          name: string
+          published_at: string
+          slug: string
+          source_code: string
+        }
+        Insert: {
+          created_at?: string
+          html_bundle?: string | null
+          id?: string
+          name: string
+          published_at?: string
+          slug: string
+          source_code: string
+        }
+        Update: {
+          created_at?: string
+          html_bundle?: string | null
+          id?: string
+          name?: string
+          published_at?: string
+          slug?: string
+          source_code?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

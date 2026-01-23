@@ -10,6 +10,8 @@ import { TerminalPanel } from './panels/TerminalPanel';
 import { CommandExplorer } from './panels/CommandExplorer';
 import { DocsPanel } from './panels/DocsPanel';
 import { AIPanel } from './panels/AIPanel';
+import { ExportSDKPanel } from './panels/ExportSDKPanel';
+import { PublishPanel } from './panels/PublishPanel';
 import { SandboxStatus } from './SandboxStatus';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { vfs } from '@/sebian/vfs';
@@ -23,7 +25,9 @@ import {
   Search,
   Settings,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Download,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -33,7 +37,7 @@ export function IDELayout() {
   const [fileContent, setFileContent] = useState<string>('');
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai'>('preview');
+  const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai' | 'export' | 'publish'>('preview');
   const [bottomPanel, setBottomPanel] = useState<'console' | 'terminal'>('console');
   const [isBottomExpanded, setIsBottomExpanded] = useState(true);
   const [runTrigger, setRunTrigger] = useState(0);
@@ -241,6 +245,14 @@ print("Template migrated: removed legacy render(text)")
                               <BookOpen className="h-3.5 w-3.5 mr-1.5" />
                               Docs
                             </TabsTrigger>
+                            <TabsTrigger value="export" className="data-[state=active]:bg-background">
+                              <Download className="h-3.5 w-3.5 mr-1.5" />
+                              SDK
+                            </TabsTrigger>
+                            <TabsTrigger value="publish" className="data-[state=active]:bg-background">
+                              <Globe className="h-3.5 w-3.5 mr-1.5" />
+                              Publish
+                            </TabsTrigger>
                           </TabsList>
                           
                           <TabsContent value="preview" className="flex-1 m-0 mt-0">
@@ -262,6 +274,12 @@ print("Template migrated: removed legacy render(text)")
                           </TabsContent>
                           <TabsContent value="docs" className="flex-1 m-0 mt-0">
                             <DocsPanel />
+                          </TabsContent>
+                          <TabsContent value="export" className="flex-1 m-0 mt-0">
+                            <ExportSDKPanel />
+                          </TabsContent>
+                          <TabsContent value="publish" className="flex-1 m-0 mt-0">
+                            <PublishPanel currentCode={fileContent} />
                           </TabsContent>
                         </Tabs>
                       </div>
