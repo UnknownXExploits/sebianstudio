@@ -152,14 +152,9 @@ print("Hello from SebianVM")`;
         code,
       };
 
-       // 1) Update chat UI first (avoids freezing while React lays out a huge code block)
+       // Update chat UI only. Applying/running is user-controlled via the "Apply" button
+       // to avoid freezing the UI if the generated program is heavy or contains an infinite loop.
        setMessages(prev => capMessages([...prev, assistantMessage]));
-
-       // 2) Then apply + run on the next frame to keep the AI panel responsive
-       requestAnimationFrame(() => {
-         onReplaceCode(code);
-         window.setTimeout(() => onRun?.(), 0);
-       });
     } catch (error) {
       console.error('AI error:', error);
       
@@ -168,15 +163,10 @@ print("Hello from SebianVM")`;
 
       const fallbackMessage: Message = {
         role: 'assistant',
-        content: '⚠️ Using offline template. Applied and running!',
+        content: '⚠️ Using offline template. Click Apply to use it.',
         code,
       };
       setMessages(prev => capMessages([...prev, fallbackMessage]));
-
-      requestAnimationFrame(() => {
-        onReplaceCode(code);
-        window.setTimeout(() => onRun?.(), 0);
-      });
     } finally {
       setIsLoading(false);
     }
