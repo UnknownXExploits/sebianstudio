@@ -224,32 +224,32 @@ print("Template migrated: removed legacy render(text)")
                     <ResizablePanel defaultSize={45} minSize={20}>
                       <div className="h-full flex flex-col bg-card">
                         <Tabs value={rightPanel} onValueChange={(v) => setRightPanel(v as any)} className="flex-1 flex flex-col">
-                          <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-2">
-                            <TabsTrigger value="preview" className="data-[state=active]:bg-background">
+                          <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-2 overflow-x-auto flex-nowrap">
+                            <TabsTrigger value="preview" className="data-[state=active]:bg-background shrink-0">
                               <Play className="h-3.5 w-3.5 mr-1.5" />
                               Preview
                             </TabsTrigger>
-                            <TabsTrigger value="ai" className="data-[state=active]:bg-background">
+                            <TabsTrigger value="ai" className="data-[state=active]:bg-background shrink-0">
                               <Sparkles className="h-3.5 w-3.5 mr-1.5" />
                               AI
                             </TabsTrigger>
-                            <TabsTrigger value="debug" className="data-[state=active]:bg-background">
+                            <TabsTrigger value="debug" className="data-[state=active]:bg-background shrink-0">
                               <Bug className="h-3.5 w-3.5 mr-1.5" />
                               Debug
                             </TabsTrigger>
-                            <TabsTrigger value="commands" className="data-[state=active]:bg-background">
+                            <TabsTrigger value="commands" className="data-[state=active]:bg-background shrink-0">
                               <Search className="h-3.5 w-3.5 mr-1.5" />
                               Cmds
                             </TabsTrigger>
-                            <TabsTrigger value="docs" className="data-[state=active]:bg-background">
+                            <TabsTrigger value="docs" className="data-[state=active]:bg-background shrink-0">
                               <BookOpen className="h-3.5 w-3.5 mr-1.5" />
                               Docs
                             </TabsTrigger>
-                            <TabsTrigger value="export" className="data-[state=active]:bg-background">
+                            <TabsTrigger value="export" className="data-[state=active]:bg-background shrink-0">
                               <Download className="h-3.5 w-3.5 mr-1.5" />
                               SDK
                             </TabsTrigger>
-                            <TabsTrigger value="publish" className="data-[state=active]:bg-background">
+                            <TabsTrigger value="publish" className="data-[state=active]:bg-background shrink-0">
                               <Globe className="h-3.5 w-3.5 mr-1.5" />
                               Publish
                             </TabsTrigger>
