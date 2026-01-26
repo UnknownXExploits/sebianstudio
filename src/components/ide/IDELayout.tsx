@@ -162,22 +162,30 @@ print("Template migrated: removed legacy render(text)")
           <div className="flex-1 flex flex-col min-h-0">
             <Tabs defaultValue="editor" className="flex-1 flex flex-col md:hidden">
               {/* Mobile Tab Navigation */}
-              <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-1 h-9">
-                <TabsTrigger value="editor" className="data-[state=active]:bg-background text-xs h-7">
+              <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-1 h-9 overflow-x-auto flex-nowrap">
+                <TabsTrigger value="editor" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
                   <Code className="h-3 w-3 mr-1" />
                   Code
                 </TabsTrigger>
-                <TabsTrigger value="preview" className="data-[state=active]:bg-background text-xs h-7">
+                <TabsTrigger value="preview" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
                   <Play className="h-3 w-3 mr-1" />
                   Run
                 </TabsTrigger>
-                <TabsTrigger value="ai" className="data-[state=active]:bg-background text-xs h-7">
+                <TabsTrigger value="ai" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
                   <Sparkles className="h-3 w-3 mr-1" />
                   AI
                 </TabsTrigger>
-                <TabsTrigger value="console" className="data-[state=active]:bg-background text-xs h-7">
+                <TabsTrigger value="console" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
                   <Terminal className="h-3 w-3 mr-1" />
                   Log
+                </TabsTrigger>
+                <TabsTrigger value="export" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
+                  <Download className="h-3 w-3 mr-1" />
+                  SDK
+                </TabsTrigger>
+                <TabsTrigger value="publish" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
+                  <Globe className="h-3 w-3 mr-1" />
+                  Publish
                 </TabsTrigger>
               </TabsList>
               
@@ -202,6 +210,12 @@ print("Template migrated: removed legacy render(text)")
               </TabsContent>
               <TabsContent value="console" className="flex-1 m-0 mt-0 min-h-0">
                 <ConsolePanel output={consoleOutput} onClear={clearConsole} />
+              </TabsContent>
+              <TabsContent value="export" className="flex-1 m-0 mt-0 min-h-0">
+                <ExportSDKPanel />
+              </TabsContent>
+              <TabsContent value="publish" className="flex-1 m-0 mt-0 min-h-0">
+                <PublishPanel currentCode={fileContent} />
               </TabsContent>
             </Tabs>
 
