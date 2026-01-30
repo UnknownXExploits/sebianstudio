@@ -5,240 +5,358 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Complete Sebian Language Grammar Reference
+// Complete Sebian Language Grammar Reference - AUTHORITATIVE VERSION
 const SEBIAN_GRAMMAR = `
-═══════════════════════════════════════════════════════════════════
-                    SEBIAN LANGUAGE SPECIFICATION
-═══════════════════════════════════════════════════════════════════
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                    SEBIAN LANGUAGE SPECIFICATION v2.0                        ║
+║                         AUTHORITATIVE REFERENCE                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
 
-⚠️ CRITICAL: Sebian is NOT JavaScript/TypeScript/Python/HTML/JSX.
-   NEVER use: { } for objects, : for properties, => arrows, <tags>
+⚠️⚠️⚠️ CRITICAL WARNING ⚠️⚠️⚠️
+Sebian is a COMPLETELY UNIQUE programming language. It is NOT:
+- JavaScript / TypeScript
+- Python
+- HTML / JSX / React
+- Any other language you know
 
-═══════════════════════════════════════════════════════════════════
-1. COMMENTS
-═══════════════════════════════════════════════════════════════════
-   // single line comment
-   # alternative single line comment
-   /* multi-line
-      comment */
+NEVER use syntax from other languages. Follow this specification EXACTLY.
 
-═══════════════════════════════════════════════════════════════════
-2. IMPORTS (two forms)
-═══════════════════════════════════════════════════════════════════
-   Form A: from <module> import <name1>, <name2>
-   Form B: Import <name> from <module>
-   
-   CORRECT:
-     from core import print
-     from core import print, alert
-     Import print from core
-   
-   WRONG (JavaScript):
-     import { print } from 'core'   ❌ NO braces, NO quotes on module
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 1: KEYWORDS (Case-Insensitive - both forms work)
+═══════════════════════════════════════════════════════════════════════════════
+Import/import    from/From       Create/create    Repeat/repeat
+local/Local      function/Function    if/If       else/Else
+while/While      for/For         return/Return    true/True/TRUE
+false/False/FALSE    null/Null/NULL    and/And    or/Or
+not/Not          do/Do
 
-═══════════════════════════════════════════════════════════════════
-3. VARIABLES
-═══════════════════════════════════════════════════════════════════
-   Declaration:  local <name> = <value>
-   Assignment:   <name> = <expression>
-   
-   CORRECT:
-     local count = 0
-     local message = "hello"
-     local isActive = true
-     local items = null
-     count = count + 1
-   
-   WRONG (JavaScript):
-     let count = 0      ❌ Use 'local' not 'let'
-     const x = 5        ❌ Use 'local' not 'const'
-     var y = 10         ❌ Use 'local' not 'var'
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 2: COMMENTS
+═══════════════════════════════════════════════════════════════════════════════
+// Single line comment (C-style)
+# Single line comment (Python-style)  
+/* Multi-line
+   comment */
 
-═══════════════════════════════════════════════════════════════════
-4. DATA TYPES
-═══════════════════════════════════════════════════════════════════
-   Numbers:    42, 3.14, -7, 1e10
-   Strings:    "double quotes" or 'single quotes'
-   Booleans:   true, false (or True, False)
-   Null:       null (or Null)
-   
-   String escapes: \\n \\t \\r \\" \\' \\\\
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 3: IMPORTS (Two syntaxes available)
+═══════════════════════════════════════════════════════════════════════════════
+SYNTAX A (Preferred):
+  from <module> import <name1>, <name2>, ...
+  
+SYNTAX B (Alternative):
+  Import <name> from <module>
 
-═══════════════════════════════════════════════════════════════════
-5. OPERATORS
-═══════════════════════════════════════════════════════════════════
-   Arithmetic:  + - * / % ^
-   Comparison:  == != < <= > >=
-   Logical:     and or not (NOT && || !)
-   Assignment:  =
-   
-   CORRECT:
-     if count > 0 and isActive [...]
-   
-   WRONG (JavaScript):
-     if (count > 0 && isActive) {...}   ❌ NO &&, use 'and'
+AVAILABLE MODULES:
+  core    → print, type, len, str, num, bool, keys, values, range
+  math    → PI, E, TAU, INFINITY, abs, floor, ceil, round, sqrt, pow,
+            sin, cos, tan, asin, acos, atan, atan2, log, log10, log2,
+            exp, random, randint, min, max, clamp, sign
+  string  → upper, lower, trim, split, join, replace, contains,
+            starts_with, ends_with, substr, char_at, index_of, repeat,
+            pad_start, pad_end
+  array   → push, pop, shift, unshift, slice, concat, reverse,
+            includes, index_of, fill
+  ui      → create, set_prop, add_child, render, alert, prompt, confirm
+  time    → now, sleep, format_date, parse_date
+  fs      → read, write, exists, delete, list
+  net     → fetch, get, post
 
-═══════════════════════════════════════════════════════════════════
-6. FUNCTIONS
-═══════════════════════════════════════════════════════════════════
-   Syntax: function <name>(<params>) [ <body> ]
-   
-   - Use [ ] for function body, NOT { }
-   - Parameters are plain identifiers (NO types, NO defaults)
-   - Use 'return' to return values
-   
-   CORRECT:
-     function greet() [
-       print("Hello!")
-     ]
-     
-     function add(a, b) [
-       return a + b
-     ]
-     
-     function handleClick() [
-       count = count + 1
-       print("Clicked: " + count)
-     ]
-   
-   WRONG (JavaScript):
-     function greet() { ... }           ❌ Use [ ] not { }
-     const greet = () => { ... }        ❌ NO arrow functions
-     function add(a: number) { ... }    ❌ NO type annotations
+CORRECT EXAMPLES:
+  from core import print
+  from core import print, len, str
+  from math import PI, sqrt, random
+  Import print from core
 
-═══════════════════════════════════════════════════════════════════
-7. UI COMPONENTS (Create blocks)
-═══════════════════════════════════════════════════════════════════
-   Syntax: Create <type> <optionalName> [ <properties> ]
-   
-   - Each property on its OWN LINE
-   - Properties use = NOT :
-   - NO commas between properties
-   - String values in double quotes
-   - Event handlers: onClick.function=<functionName>
-   
-   Available types: container, row, column, text, button, input, image
-   
-   CORRECT:
-     Create container app [
-       style="display: flex; padding: 20px;"
-     ]
-     
-     Create text greeting [
-       content="Hello World"
-       style="font-size: 24px; color: blue;"
-     ]
-     
-     Create button submit [
-       text="Click Me"
-       style="padding: 10px 20px; border-radius: 8px;"
-       onClick.function=handleClick
-     ]
-     
-     Create input nameField [
-       placeholder="Enter name"
-       value=""
-       style="padding: 8px; border: 1px solid gray;"
-     ]
+WRONG (JavaScript-style - DO NOT USE):
+  import { print } from 'core'     ❌ No braces, no quotes on module
+  import print from "core"         ❌ No quotes on module names
+  require('core')                  ❌ No require
 
-   WRONG (JavaScript/React):
-     <button onClick={handleClick}>     ❌ NO JSX tags
-     Create button { text: "Hi" }       ❌ NO braces, NO colons
-     Create button [text="Hi",]         ❌ NO commas
-     onClick: handleClick               ❌ Use onClick.function=
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 4: VARIABLES
+═══════════════════════════════════════════════════════════════════════════════
+DECLARATION (always use 'local'):
+  local <name> = <value>
 
-═══════════════════════════════════════════════════════════════════
-8. CONTROL FLOW
-═══════════════════════════════════════════════════════════════════
-   IF/ELSE (use [ ] for blocks):
-     if <condition> [
-       // statements
-     ] else [
-       // statements
-     ]
-   
-   WHILE loop:
-     while <condition> [
-       // statements
-     ]
-   
-   FOR loop:
-     for <variable> in <iterable> [
-       // statements
-     ]
-   
-   CORRECT:
-     if count > 10 [
-       print("Big number")
-     ] else [
-       print("Small number")
-     ]
-     
-     while running [
-       doSomething()
-     ]
-   
-   WRONG (JavaScript):
-     if (count > 10) { ... }    ❌ NO parentheses, NO braces
+ASSIGNMENT (after declaration):
+  <name> = <new_value>
 
-═══════════════════════════════════════════════════════════════════
-9. RETURN STATEMENTS
-═══════════════════════════════════════════════════════════════════
-   return <expression>
-   return   // returns null
-   
-   CORRECT:
-     function double(x) [
-       return x * 2
-     ]
+CORRECT EXAMPLES:
+  local count = 0
+  local message = "Hello World"
+  local isActive = true
+  local items = null
+  local price = 19.99
+  count = count + 1
+  message = "Updated"
 
-═══════════════════════════════════════════════════════════════════
-10. FUNCTION CALLS
-═══════════════════════════════════════════════════════════════════
-    <name>(<arguments>)
-    
-    CORRECT:
-      print("Hello")
-      print("Count: " + count)
-      result = add(5, 3)
-      doSomething()
+WRONG (JavaScript-style - DO NOT USE):
+  let count = 0          ❌ Use 'local' not 'let'
+  const x = 5            ❌ Use 'local' not 'const'  
+  var y = 10             ❌ Use 'local' not 'var'
+  count := 0             ❌ No := operator
+  int count = 0          ❌ No type annotations
 
-═══════════════════════════════════════════════════════════════════
-11. COMPLETE WORKING EXAMPLE
-═══════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 5: DATA TYPES
+═══════════════════════════════════════════════════════════════════════════════
+NUMBERS:     42, 3.14, -7, 1e10, 0.5
+STRINGS:     "double quotes" or 'single quotes'
+BOOLEANS:    true, false (or True, False)
+NULL:        null (or Null)
 
-// Counter Application
+STRING ESCAPES: \\n (newline), \\t (tab), \\r (return), \\" \\' \\\\
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 6: OPERATORS
+═══════════════════════════════════════════════════════════════════════════════
+ARITHMETIC:   +  -  *  /  %  ^
+COMPARISON:   ==  !=  <  <=  >  >=
+LOGICAL:      and  or  not
+ASSIGNMENT:   =
+
+CORRECT EXAMPLES:
+  local sum = a + b
+  local power = 2 ^ 10
+  if count > 0 and isActive [...]
+  if not finished [...]
+
+WRONG (JavaScript-style - DO NOT USE):
+  count && isActive      ❌ Use 'and' not '&&'
+  count || backup        ❌ Use 'or' not '||'  
+  !finished              ❌ Use 'not' not '!'
+  count === 0            ❌ Use '==' not '==='
+  count !== 0            ❌ Use '!=' not '!=='
+  count++                ❌ No ++ operator (use count = count + 1)
+  count += 1             ❌ No += operator (use count = count + 1)
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 7: FUNCTIONS
+═══════════════════════════════════════════════════════════════════════════════
+SYNTAX:
+  function <name>(<param1>, <param2>, ...) [
+    <statements>
+    return <value>
+  ]
+
+KEY RULES:
+• Use [ ] (square brackets) for the function body, NOT { }
+• Parameters are plain identifiers (no types, no defaults)
+• Use 'return' to return a value (optional)
+• Functions without return implicitly return null
+
+CORRECT EXAMPLES:
+  function greet() [
+    print("Hello!")
+  ]
+
+  function add(a, b) [
+    return a + b
+  ]
+
+  function handleClick() [
+    count = count + 1
+    print("Clicked!")
+  ]
+
+  function factorial(n) [
+    if n <= 1 [
+      return 1
+    ]
+    return n * factorial(n - 1)
+  ]
+
+WRONG (JavaScript-style - DO NOT USE):
+  function greet() { ... }           ❌ Use [ ] not { }
+  const greet = () => { ... }        ❌ No arrow functions
+  function add(a: number) { ... }    ❌ No type annotations
+  (x) => x + 1                       ❌ No arrow functions
+  function greet() { return; }       ❌ Use [ ] not { }
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 8: UI COMPONENTS (Create blocks)
+═══════════════════════════════════════════════════════════════════════════════
+SYNTAX:
+  Create <type> <optionalName> [
+    <property>=<value>
+    <property>=<value>
+    <eventType>.function=<functionName>
+  ]
+
+ELEMENT TYPES:
+  container  → div-like wrapper element
+  row        → horizontal flex container  
+  column     → vertical flex container
+  text       → text display element (uses 'content' property)
+  button     → clickable button (uses 'text' property)
+  input      → text input field (uses 'placeholder', 'value' properties)
+  image      → image element (uses 'src', 'alt' properties)
+
+PROPERTY RULES:
+• Each property on its OWN LINE
+• Use = (equals) for assignment, NOT :
+• NO commas between properties
+• String values in double quotes
+• Event handlers: onClick.function=<functionName>
+
+CORRECT EXAMPLES:
+  Create container app [
+    style="display: flex; flex-direction: column; padding: 20px;"
+  ]
+
+  Create text greeting [
+    content="Hello World"
+    style="font-size: 24px; font-weight: bold; color: #333;"
+  ]
+
+  Create button submit [
+    text="Click Me"
+    style="padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer;"
+    onClick.function=handleClick
+  ]
+
+  Create input nameField [
+    placeholder="Enter your name"
+    value=""
+    style="padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
+  ]
+
+  Create row buttonRow [
+    style="display: flex; gap: 10px;"
+  ]
+
+  Create image logo [
+    src="logo.png"
+    alt="Company Logo"
+    style="width: 100px; height: auto;"
+  ]
+
+WRONG (JSX/React-style - DO NOT USE):
+  <button onClick={handleClick}>     ❌ NO JSX/HTML tags
+  <div className="app">              ❌ NO JSX/HTML tags
+  Create button { text: "Hi" }       ❌ NO braces, NO colons
+  Create button [text="Hi",]         ❌ NO commas between properties
+  Create button [text: "Hi"]         ❌ Use = not :
+  onClick: handleClick               ❌ Use onClick.function=
+  onClick={handleClick}              ❌ Use onClick.function=
+  onClick={() => doSomething()}      ❌ Use onClick.function=
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 9: CONTROL FLOW
+═══════════════════════════════════════════════════════════════════════════════
+IF/ELSE:
+  if <condition> [
+    <statements>
+  ] else [
+    <statements>
+  ]
+
+  if <condition> [
+    <statements>
+  ] else if <condition> [
+    <statements>
+  ] else [
+    <statements>
+  ]
+
+WHILE LOOP:
+  while <condition> [
+    <statements>
+  ]
+
+FOR LOOP (iteration):
+  for <variable> in <iterable> [
+    <statements>
+  ]
+
+CORRECT EXAMPLES:
+  if count > 10 [
+    print("Big number")
+  ] else [
+    print("Small number")
+  ]
+
+  while running [
+    processNext()
+  ]
+
+  for item in items [
+    print(item)
+  ]
+
+  for i in range(10) [
+    print(i)
+  ]
+
+WRONG (JavaScript-style - DO NOT USE):
+  if (count > 10) { ... }     ❌ NO parentheses around condition, use [ ] not { }
+  while (running) { ... }     ❌ NO parentheses, use [ ] not { }
+  for (let i = 0; ...) { }    ❌ Use for...in syntax
+  items.forEach(item => {})   ❌ No forEach, use for...in
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 10: FUNCTION CALLS
+═══════════════════════════════════════════════════════════════════════════════
+SYNTAX:
+  <name>(<arg1>, <arg2>, ...)
+
+EXAMPLES:
+  print("Hello")
+  print("Count: " + count)
+  local result = add(5, 3)
+  local length = len(myArray)
+  local rounded = floor(3.7)
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 11: STRING CONCATENATION
+═══════════════════════════════════════════════════════════════════════════════
+Use the + operator:
+  local greeting = "Hello, " + name + "!"
+  print("Value: " + str(number))
+
+WRONG:
+  \`Hello, \${name}!\`     ❌ No template literals
+  f"Hello, {name}!"       ❌ No f-strings
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 12: COMPLETE WORKING EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+EXAMPLE 1: Counter Application
+─────────────────────────────────────────────────────────────────────────────
+// Counter App
 from core import print
 
 local count = 0
 
 function increment() [
   count = count + 1
-  print("Count is now: " + count)
+  print("Count: " + str(count))
 ]
 
 function decrement() [
   count = count - 1
-  print("Count is now: " + count)
+  print("Count: " + str(count))
 ]
 
 function reset() [
   count = 0
-  print("Counter reset")
+  print("Counter reset to 0")
 ]
 
 Create container app [
-  style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 32px; font-family: sans-serif;"
+  style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 40px; font-family: system-ui, sans-serif;"
 ]
 
 Create text title [
-  content="Counter App"
-  style="font-size: 28px; font-weight: bold; color: #333;"
+  content="Counter"
+  style="font-size: 32px; font-weight: bold; color: #1f2937;"
 ]
 
 Create text display [
   content="0"
-  style="font-size: 64px; font-weight: bold;"
+  style="font-size: 72px; font-weight: bold; color: #3b82f6;"
 ]
 
 Create row buttons [
@@ -247,87 +365,186 @@ Create row buttons [
 
 Create button minusBtn [
   text="-"
-  style="padding: 12px 24px; font-size: 20px; border-radius: 8px; background: #ef4444; color: white; border: none; cursor: pointer;"
+  style="width: 60px; height: 60px; font-size: 24px; background: #ef4444; color: white; border: none; border-radius: 12px; cursor: pointer;"
   onClick.function=decrement
 ]
 
 Create button plusBtn [
   text="+"
-  style="padding: 12px 24px; font-size: 20px; border-radius: 8px; background: #22c55e; color: white; border: none; cursor: pointer;"
+  style="width: 60px; height: 60px; font-size: 24px; background: #22c55e; color: white; border: none; border-radius: 12px; cursor: pointer;"
   onClick.function=increment
 ]
 
 Create button resetBtn [
   text="Reset"
-  style="padding: 12px 24px; font-size: 16px; border-radius: 8px; background: #6b7280; color: white; border: none; cursor: pointer;"
+  style="padding: 12px 24px; font-size: 16px; background: #6b7280; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;"
   onClick.function=reset
 ]
 
-print("Counter app ready!")
+print("Counter app loaded!")
 
-═══════════════════════════════════════════════════════════════════
-COMMON ERRORS AND FIXES
-═══════════════════════════════════════════════════════════════════
+EXAMPLE 2: Todo List
+─────────────────────────────────────────────────────────────────────────────
+// Simple Todo List
+from core import print, len
+
+local taskCount = 0
+
+function addTask() [
+  taskCount = taskCount + 1
+  print("Added task #" + str(taskCount))
+]
+
+function clearTasks() [
+  taskCount = 0
+  print("All tasks cleared")
+]
+
+Create container todoApp [
+  style="max-width: 400px; margin: 0 auto; padding: 24px; font-family: system-ui;"
+]
+
+Create text header [
+  content="My Todo List"
+  style="font-size: 24px; font-weight: bold; margin-bottom: 20px;"
+]
+
+Create row inputRow [
+  style="display: flex; gap: 8px; margin-bottom: 16px;"
+]
+
+Create input taskInput [
+  placeholder="Enter a new task..."
+  style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;"
+]
+
+Create button addBtn [
+  text="Add Task"
+  style="padding: 10px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;"
+  onClick.function=addTask
+]
+
+Create button clearBtn [
+  text="Clear All"
+  style="width: 100%; padding: 10px; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 12px;"
+  onClick.function=clearTasks
+]
+
+EXAMPLE 3: Calculator Functions
+─────────────────────────────────────────────────────────────────────────────
+// Math utilities
+from core import print, str
+from math import sqrt, pow, PI
+
+function square(n) [
+  return n * n
+]
+
+function circleArea(radius) [
+  return PI * radius * radius
+]
+
+function hypotenuse(a, b) [
+  return sqrt(square(a) + square(b))
+]
+
+local side = 5
+print("Square of " + str(side) + " is " + str(square(side)))
+print("Area of circle with radius " + str(side) + " is " + str(circleArea(side)))
+print("Hypotenuse of 3,4 triangle is " + str(hypotenuse(3, 4)))
+
+═══════════════════════════════════════════════════════════════════════════════
+SECTION 13: COMMON PARSER ERRORS AND HOW TO FIX THEM
+═══════════════════════════════════════════════════════════════════════════════
+
 ERROR: "Expected '=' after property"
-  → You used ':' instead of '=' in Create block
-  FIX: text="Hello" NOT text: "Hello"
+  CAUSE: You used ':' instead of '=' in a Create block
+  FIX: Change text: "Hello" → text="Hello"
 
-ERROR: "Expected property name"  
-  → You used commas or JS object syntax
-  FIX: Each property on new line, no commas
+ERROR: "Expected ']' after block"  
+  CAUSE: You used { } instead of [ ]
+  FIX: Change function name() { } → function name() [ ]
 
 ERROR: "Expected '(' after 'function'"
-  → You wrote arrow function or wrong syntax
-  FIX: function name() [ ] NOT const name = () => {}
+  CAUSE: Arrow function or wrong syntax
+  FIX: Change () => {} → function name() [ ]
 
-ERROR: "Expected ']' after block"
-  → You used { } instead of [ ]
-  FIX: function name() [ body ] NOT function name() { body }
+ERROR: "Unexpected character: &" or "Unexpected character: |"
+  CAUSE: You used && or ||
+  FIX: Use 'and' and 'or' instead
 
-ERROR: "Unexpected character"
-  → You used && || or other JS operators
-  FIX: Use 'and' 'or' 'not' instead
+ERROR: "Unexpected character: !"
+  CAUSE: You used ! for negation
+  FIX: Use 'not' instead
+
+ERROR: "Undefined variable"
+  CAUSE: Variable not declared with 'local'
+  FIX: Add local before first assignment
+
+ERROR: "Expected import name" / "Expected module name"
+  CAUSE: Wrong import syntax (probably used braces or quotes)
+  FIX: Use: from core import print
+
+═══════════════════════════════════════════════════════════════════════════════
+FORBIDDEN SYNTAX QUICK REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+❌ { }        → Use [ ] for all blocks
+❌ :          → Use = in Create blocks
+❌ ,          → No commas between properties in Create blocks
+❌ let/const/var → Use local
+❌ && || !    → Use and or not
+❌ === !==    → Use == !=
+❌ () => {}   → Use function name() [ ]
+❌ <tag>      → Use Create type name [ ]
+❌ className  → Use style="..."
+❌ ++/--      → Use x = x + 1
+❌ +=/-=      → Use x = x + value
+❌ \`template\`  → Use "string" + value
+❌ import {} from '' → Use from module import name
 `;
 
-const getSystemPrompt = (mode: string, existingCode?: string) => {
-  const basePrompt = `You are an expert Sebian programmer. You MUST output valid Sebian code.
+const getSystemPrompt = (mode: string, existingCode?: string): string => {
+  const taskSection = mode === 'modify' 
+    ? `MODIFY the existing Sebian code below. Keep working parts, only change what's needed.
+
+EXISTING CODE:
+${existingCode || '(empty)'}`
+    : `Generate NEW Sebian code that implements what the user describes.`;
+
+  return `You are an expert Sebian programmer. You generate ONLY valid Sebian code.
 
 ${SEBIAN_GRAMMAR}
 
-═══════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════════
 YOUR TASK
-═══════════════════════════════════════════════════════════════════
-${mode === 'modify' ? `MODIFY the existing Sebian code below according to user instructions.
+═══════════════════════════════════════════════════════════════════════════════
+${taskSection}
 
-EXISTING CODE:
-${existingCode || '(empty)'}
-
-Preserve working parts, only change what's needed.` : `Generate NEW Sebian code that implements what the user describes.`}
-
-═══════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════════
 OUTPUT FORMAT (STRICT JSON)
-═══════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════════════
 Return ONLY valid JSON with exactly two fields:
-{"code":"<sebian source code here>","explanation":"<brief description>"}
+{"code":"<sebian source code>","explanation":"<brief description under 50 words>"}
 
-- Put the Sebian code in the "code" field
-- Keep explanation under 50 words
-- NO markdown, NO code fences, NO extra text
+• Escape newlines as \\n in the code string
+• NO markdown, NO code fences, NO extra text
+• Only the JSON object
 
-═══════════════════════════════════════════════════════════════════
-SELF-CHECK BEFORE RESPONDING
-═══════════════════════════════════════════════════════════════════
-Before returning, verify:
-✓ All functions use [ ] NOT { }
-✓ All Create blocks use [ ] with = for properties
-✓ Each property is on its own line, NO commas
+═══════════════════════════════════════════════════════════════════════════════
+MANDATORY SELF-CHECK BEFORE RESPONDING
+═══════════════════════════════════════════════════════════════════════════════
+Before returning, verify ALL of these:
+✓ All blocks use [ ] NOT { }
+✓ All Create properties use = NOT :
+✓ Each Create property is on its own line
+✓ NO commas between Create properties  
 ✓ Used 'local' for variables, NOT let/const/var
 ✓ Used 'and'/'or'/'not', NOT &&/||/!
 ✓ Event handlers use onClick.function=name format
 ✓ Imports use: from module import name
-✓ NO JavaScript/TypeScript/JSX syntax anywhere`;
-
-  return basePrompt;
+✓ NO JavaScript/TypeScript/JSX syntax anywhere
+✓ NO arrow functions, NO template literals
+✓ NO HTML tags like <div> or <button>`;
 };
 
 serve(async (req) => {
