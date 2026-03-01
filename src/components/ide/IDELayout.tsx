@@ -6,12 +6,14 @@ import { EditorPanel } from './panels/EditorPanel';
 import { ConsolePanel } from './panels/ConsolePanel';
 import { PreviewPanel } from './panels/PreviewPanel';
 import { DebugPanel } from './panels/DebugPanel';
-import { TerminalPanel } from './panels/TerminalPanel';
+import { SebConsolePanel } from './panels/SebConsolePanel';
 import { CommandExplorer } from './panels/CommandExplorer';
 import { DocsPanel } from './panels/DocsPanel';
 import { AIPanel } from './panels/AIPanel';
 import { ExportSDKPanel } from './panels/ExportSDKPanel';
 import { PublishPanel } from './panels/PublishPanel';
+import { DeployPanel } from './panels/DeployPanel';
+import { SettingsPanel } from './panels/SettingsPanel';
 import { SandboxStatus } from './SandboxStatus';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { vfs } from '@/sebian/vfs';
@@ -27,7 +29,8 @@ import {
   Maximize2,
   Minimize2,
   Download,
-  Globe
+  Globe,
+  Rocket,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -37,7 +40,7 @@ export function IDELayout() {
   const [fileContent, setFileContent] = useState<string>('');
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai' | 'export' | 'publish'>('preview');
+  const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai' | 'export' | 'publish' | 'deploy' | 'settings'>('preview');
   const [bottomPanel, setBottomPanel] = useState<'console' | 'terminal'>('console');
   const [isBottomExpanded, setIsBottomExpanded] = useState(true);
   const [runTrigger, setRunTrigger] = useState(0);
@@ -57,8 +60,6 @@ export function IDELayout() {
       
       const content = vfs.readFile('/src/main.seb');
 
-      // One-time migration for legacy templates that referenced an undefined global `text`
-      // (e.g. `render(text)` without `Create text text [...]`).
       const looksLikeLegacy =
         !!content &&
         (content.includes('render(text)') ||
@@ -67,17 +68,7 @@ export function IDELayout() {
           content.includes('Create text\r\n'));
 
       if (looksLikeLegacy) {
-        const migrated = `// Main Entry Point (migrated)
-
-from core import print
-
-Create text hello [
-  content="Hello, Sebian!"
-  style="font-size: 24px; font-weight: 600;"
-]
-
-print("Template migrated: removed legacy render(text)")
-`;
+        const migrated = `// Main Entry Point (migrated)\n\nfrom core import print\n\nCreate text hello [\n  content="Hello, Sebian!"\n  style="font-size: 24px; font-weight: 600;"\n]\n\nprint("Template migrated: removed legacy render(text)")\n`;
         vfs.writeFile('/src/main.seb', migrated);
         setFileContent(migrated);
       } else {
@@ -133,13 +124,11 @@ print("Template migrated: removed legacy render(text)")
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        {/* Sidebar - hidden on mobile */}
         <div className="hidden md:block">
           <IDESidebar onFileSelect={handleFileSelect} currentFile={currentFile} />
         </div>
         
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Top Bar */}
           <header className="h-10 md:h-12 border-b border-border flex items-center justify-between px-2 md:px-4 bg-card">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 text-primary font-bold">
@@ -152,70 +141,64 @@ print("Template migrated: removed legacy render(text)")
             
             <div className="flex items-center gap-1">
               <SandboxStatus />
-              <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8">
+              <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8" onClick={() => setRightPanel('settings')}>
                 <Settings className="h-3.5 w-3.5 md:h-4 md:w-4" />
               </Button>
             </div>
           </header>
 
-          {/* Main Content - Stack on mobile, side-by-side on desktop */}
           <div className="flex-1 flex flex-col min-h-0">
             <Tabs defaultValue="editor" className="flex-1 flex flex-col md:hidden">
-              {/* Mobile Tab Navigation */}
               <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-1 h-9 overflow-x-auto flex-nowrap">
                 <TabsTrigger value="editor" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
-                  <Code className="h-3 w-3 mr-1" />
-                  Code
+                  <Code className="h-3 w-3 mr-1" />Code
                 </TabsTrigger>
                 <TabsTrigger value="preview" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
-                  <Play className="h-3 w-3 mr-1" />
-                  Run
+                  <Play className="h-3 w-3 mr-1" />Run
                 </TabsTrigger>
                 <TabsTrigger value="ai" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  AI
+                  <Sparkles className="h-3 w-3 mr-1" />AI
                 </TabsTrigger>
                 <TabsTrigger value="console" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
-                  <Terminal className="h-3 w-3 mr-1" />
-                  Log
+                  <Terminal className="h-3 w-3 mr-1" />Log
+                </TabsTrigger>
+                <TabsTrigger value="deploy" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
+                  <Rocket className="h-3 w-3 mr-1" />Deploy
                 </TabsTrigger>
                 <TabsTrigger value="export" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
-                  <Download className="h-3 w-3 mr-1" />
-                  SDK
+                  <Download className="h-3 w-3 mr-1" />SDK
                 </TabsTrigger>
                 <TabsTrigger value="publish" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
-                  <Globe className="h-3 w-3 mr-1" />
-                  Publish
+                  <Globe className="h-3 w-3 mr-1" />Publish
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
+                  <Settings className="h-3 w-3 mr-1" />Settings
                 </TabsTrigger>
               </TabsList>
               
               <TabsContent value="editor" className="flex-1 m-0 mt-0 min-h-0">
-                <EditorPanel
-                  filePath={currentFile}
-                  content={fileContent}
-                  onChange={handleFileChange}
-                  onRun={handleConsoleLog}
-                />
+                <EditorPanel filePath={currentFile} content={fileContent} onChange={handleFileChange} onRun={handleConsoleLog} />
               </TabsContent>
               <TabsContent value="preview" className="flex-1 m-0 mt-0 min-h-0">
                 <PreviewPanel code={fileContent} runTrigger={runTrigger} onLog={handleConsoleLog} />
               </TabsContent>
               <TabsContent value="ai" className="flex-1 m-0 mt-0 min-h-0">
-                <AIPanel 
-                  onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} 
-                  onReplaceCode={handleReplaceCode}
-                  onRun={triggerRun}
-                  currentCode={fileContent}
-                />
+                <AIPanel onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} onReplaceCode={handleReplaceCode} onRun={triggerRun} currentCode={fileContent} />
               </TabsContent>
               <TabsContent value="console" className="flex-1 m-0 mt-0 min-h-0">
                 <ConsolePanel output={consoleOutput} onClear={clearConsole} />
+              </TabsContent>
+              <TabsContent value="deploy" className="flex-1 m-0 mt-0 min-h-0">
+                <DeployPanel currentCode={fileContent} />
               </TabsContent>
               <TabsContent value="export" className="flex-1 m-0 mt-0 min-h-0">
                 <ExportSDKPanel />
               </TabsContent>
               <TabsContent value="publish" className="flex-1 m-0 mt-0 min-h-0">
                 <PublishPanel currentCode={fileContent} />
+              </TabsContent>
+              <TabsContent value="settings" className="flex-1 m-0 mt-0 min-h-0">
+                <SettingsPanel />
               </TabsContent>
             </Tabs>
 
@@ -225,12 +208,7 @@ print("Template migrated: removed legacy render(text)")
                 <ResizablePanel defaultSize={70} minSize={30}>
                   <ResizablePanelGroup direction="horizontal">
                     <ResizablePanel defaultSize={55} minSize={30}>
-                      <EditorPanel
-                        filePath={currentFile}
-                        content={fileContent}
-                        onChange={handleFileChange}
-                        onRun={handleConsoleLog}
-                      />
+                      <EditorPanel filePath={currentFile} content={fileContent} onChange={handleFileChange} onRun={handleConsoleLog} />
                     </ResizablePanel>
                     
                     <ResizableHandle withHandle />
@@ -240,32 +218,31 @@ print("Template migrated: removed legacy render(text)")
                         <Tabs value={rightPanel} onValueChange={(v) => setRightPanel(v as any)} className="flex-1 flex flex-col">
                           <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-2 overflow-x-auto flex-nowrap">
                             <TabsTrigger value="preview" className="data-[state=active]:bg-background shrink-0">
-                              <Play className="h-3.5 w-3.5 mr-1.5" />
-                              Preview
+                              <Play className="h-3.5 w-3.5 mr-1.5" />Preview
                             </TabsTrigger>
                             <TabsTrigger value="ai" className="data-[state=active]:bg-background shrink-0">
-                              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                              AI
+                              <Sparkles className="h-3.5 w-3.5 mr-1.5" />AI
+                            </TabsTrigger>
+                            <TabsTrigger value="deploy" className="data-[state=active]:bg-background shrink-0">
+                              <Rocket className="h-3.5 w-3.5 mr-1.5" />Deploy
                             </TabsTrigger>
                             <TabsTrigger value="debug" className="data-[state=active]:bg-background shrink-0">
-                              <Bug className="h-3.5 w-3.5 mr-1.5" />
-                              Debug
+                              <Bug className="h-3.5 w-3.5 mr-1.5" />Debug
                             </TabsTrigger>
                             <TabsTrigger value="commands" className="data-[state=active]:bg-background shrink-0">
-                              <Search className="h-3.5 w-3.5 mr-1.5" />
-                              Cmds
+                              <Search className="h-3.5 w-3.5 mr-1.5" />Cmds
                             </TabsTrigger>
                             <TabsTrigger value="docs" className="data-[state=active]:bg-background shrink-0">
-                              <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-                              Docs
+                              <BookOpen className="h-3.5 w-3.5 mr-1.5" />Docs
                             </TabsTrigger>
                             <TabsTrigger value="export" className="data-[state=active]:bg-background shrink-0">
-                              <Download className="h-3.5 w-3.5 mr-1.5" />
-                              SDK
+                              <Download className="h-3.5 w-3.5 mr-1.5" />SDK
                             </TabsTrigger>
                             <TabsTrigger value="publish" className="data-[state=active]:bg-background shrink-0">
-                              <Globe className="h-3.5 w-3.5 mr-1.5" />
-                              Publish
+                              <Globe className="h-3.5 w-3.5 mr-1.5" />Publish
+                            </TabsTrigger>
+                            <TabsTrigger value="settings" className="data-[state=active]:bg-background shrink-0">
+                              <Settings className="h-3.5 w-3.5 mr-1.5" />Settings
                             </TabsTrigger>
                           </TabsList>
                           
@@ -273,12 +250,10 @@ print("Template migrated: removed legacy render(text)")
                             <PreviewPanel code={fileContent} runTrigger={runTrigger} onLog={handleConsoleLog} />
                           </TabsContent>
                           <TabsContent value="ai" className="flex-1 m-0 mt-0">
-                            <AIPanel 
-                              onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} 
-                              onReplaceCode={handleReplaceCode}
-                              onRun={triggerRun}
-                              currentCode={fileContent}
-                            />
+                            <AIPanel onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} onReplaceCode={handleReplaceCode} onRun={triggerRun} currentCode={fileContent} />
+                          </TabsContent>
+                          <TabsContent value="deploy" className="flex-1 m-0 mt-0">
+                            <DeployPanel currentCode={fileContent} />
                           </TabsContent>
                           <TabsContent value="debug" className="flex-1 m-0 mt-0">
                             <DebugPanel />
@@ -294,6 +269,9 @@ print("Template migrated: removed legacy render(text)")
                           </TabsContent>
                           <TabsContent value="publish" className="flex-1 m-0 mt-0">
                             <PublishPanel currentCode={fileContent} />
+                          </TabsContent>
+                          <TabsContent value="settings" className="flex-1 m-0 mt-0">
+                            <SettingsPanel />
                           </TabsContent>
                         </Tabs>
                       </div>
@@ -313,12 +291,10 @@ print("Template migrated: removed legacy render(text)")
                       <Tabs value={bottomPanel} onValueChange={(v) => setBottomPanel(v as any)} className="flex-1">
                         <TabsList className="bg-transparent h-9">
                           <TabsTrigger value="console" className="data-[state=active]:bg-background text-xs">
-                            <Code className="h-3.5 w-3.5 mr-1.5" />
-                            Console
+                            <Code className="h-3.5 w-3.5 mr-1.5" />Console
                           </TabsTrigger>
                           <TabsTrigger value="terminal" className="data-[state=active]:bg-background text-xs">
-                            <Terminal className="h-3.5 w-3.5 mr-1.5" />
-                            Terminal
+                            <Terminal className="h-3.5 w-3.5 mr-1.5" />SebConsole
                           </TabsTrigger>
                         </TabsList>
                       </Tabs>
@@ -329,11 +305,7 @@ print("Template migrated: removed legacy render(text)")
                         className="h-7 w-7"
                         onClick={() => setIsBottomExpanded(!isBottomExpanded)}
                       >
-                        {isBottomExpanded ? (
-                          <Minimize2 className="h-3.5 w-3.5" />
-                        ) : (
-                          <Maximize2 className="h-3.5 w-3.5" />
-                        )}
+                        {isBottomExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
                     
@@ -342,7 +314,7 @@ print("Template migrated: removed legacy render(text)")
                         {bottomPanel === 'console' ? (
                           <ConsolePanel output={consoleOutput} onClear={clearConsole} />
                         ) : (
-                          <TerminalPanel onLog={handleConsoleLog} />
+                          <SebConsolePanel onLog={handleConsoleLog} />
                         )}
                       </div>
                     )}

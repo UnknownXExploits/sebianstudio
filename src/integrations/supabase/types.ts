@@ -49,6 +49,68 @@ export type Database = {
           },
         ]
       }
+      installers: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      packages: {
+        Row: {
+          architecture: string | null
+          created_at: string
+          description: string | null
+          id: string
+          installer_id: string
+          name: string
+          source_code: string
+          version: string
+        }
+        Insert: {
+          architecture?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          installer_id: string
+          name: string
+          source_code?: string
+          version?: string
+        }
+        Update: {
+          architecture?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          installer_id?: string
+          name?: string
+          source_code?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_installer_id_fkey"
+            columns: ["installer_id"]
+            isOneToOne: false
+            referencedRelation: "installers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string
