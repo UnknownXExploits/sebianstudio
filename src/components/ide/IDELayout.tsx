@@ -42,6 +42,7 @@ export function IDELayout() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai' | 'export' | 'publish' | 'deploy' | 'settings'>('preview');
   const [bottomPanel, setBottomPanel] = useState<'console' | 'terminal'>('console');
+  const [mobileTab, setMobileTab] = useState('editor');
   const [isBottomExpanded, setIsBottomExpanded] = useState(true);
   const [runTrigger, setRunTrigger] = useState(0);
 
@@ -148,7 +149,7 @@ export function IDELayout() {
           </header>
 
           <div className="flex-1 flex flex-col min-h-0">
-            <Tabs defaultValue="editor" className="flex-1 flex flex-col md:hidden">
+            <Tabs value={mobileTab} onValueChange={setMobileTab} className="flex-1 flex flex-col md:hidden">
               <TabsList className="w-full justify-start rounded-none border-b border-border bg-secondary/30 px-1 h-9 overflow-x-auto flex-nowrap">
                 <TabsTrigger value="editor" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
                   <Code className="h-3 w-3 mr-1" />Code
@@ -189,7 +190,7 @@ export function IDELayout() {
                 <ConsolePanel output={consoleOutput} onClear={clearConsole} />
               </TabsContent>
               <TabsContent value="deploy" className="flex-1 m-0 mt-0 min-h-0">
-                <DeployPanel currentCode={fileContent} />
+                <DeployPanel currentCode={fileContent} onOpenConsole={() => setMobileTab('console')} />
               </TabsContent>
               <TabsContent value="export" className="flex-1 m-0 mt-0 min-h-0">
                 <ExportSDKPanel />
@@ -253,7 +254,7 @@ export function IDELayout() {
                             <AIPanel onInsertCode={(code) => handleFileChange(fileContent + '\n' + code)} onReplaceCode={handleReplaceCode} onRun={triggerRun} currentCode={fileContent} />
                           </TabsContent>
                           <TabsContent value="deploy" className="flex-1 m-0 mt-0">
-                            <DeployPanel currentCode={fileContent} />
+                            <DeployPanel currentCode={fileContent} onOpenConsole={() => setBottomPanel('console')} />
                           </TabsContent>
                           <TabsContent value="debug" className="flex-1 m-0 mt-0">
                             <DebugPanel />

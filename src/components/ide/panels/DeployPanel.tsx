@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Download, Upload, FileCode, Package, Loader2, Check } from 'lucide-react';
+import { Download, Upload, FileCode, Package, Loader2, Check, Terminal } from 'lucide-react';
 import { compile } from '@/sebian/compiler';
 import { vfs } from '@/sebian/vfs';
 import { toast } from 'sonner';
@@ -10,9 +10,10 @@ import { cn } from '@/lib/utils';
 
 interface DeployPanelProps {
   currentCode: string;
+  onOpenConsole?: () => void;
 }
 
-export function DeployPanel({ currentCode }: DeployPanelProps) {
+export function DeployPanel({ currentCode, onOpenConsole }: DeployPanelProps) {
   const [isCompiling, setIsCompiling] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [runOutput, setRunOutput] = useState<string[]>([]);
@@ -23,12 +24,14 @@ export function DeployPanel({ currentCode }: DeployPanelProps) {
       toast.error('No code to download');
       return;
     }
-    const blob = new Blob([currentCode], { type: 'text/plain' });
+    const blob = new Blob([currentCode], { type: 'application/x-sebian' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'project.seb';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success('Downloaded as .seb');
   };
@@ -47,12 +50,14 @@ export function DeployPanel({ currentCode }: DeployPanelProps) {
       } else {
         // Download compiled bytecode
         const bytecode = JSON.stringify(result.chunk, null, 2);
-        const blob = new Blob([bytecode], { type: 'application/json' });
+        const blob = new Blob([bytecode], { type: 'application/x-sebian-compiled' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = 'project.sebc';
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
         setLastResult('✅ Compiled and downloaded as .sebc');
         toast.success('Compiled successfully!');
@@ -91,12 +96,14 @@ export function DeployPanel({ currentCode }: DeployPanelProps) {
         }
       };
 
-      const blob = new Blob([JSON.stringify(sebf)], { type: 'application/octet-stream' });
+      const blob = new Blob([JSON.stringify(sebf)], { type: 'application/x-sebian-executable' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = 'project.sebf';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
       setLastResult('✅ Built and downloaded as .sebf executable');
       toast.success('Built .sebf executable!');
@@ -185,9 +192,16 @@ export function DeployPanel({ currentCode }: DeployPanelProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="px-3 py-2 border-b border-border">
-        <h3 className="text-sm font-semibold text-foreground">Deploy & Build</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Compile, download, upload & run</p>
+      <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Deploy & Build</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Compile, download, upload & run</p>
+        </div>
+        {onOpenConsole && (
+          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onOpenConsole}>
+            <Terminal className="h-3 w-3 mr-1" />Console
+          </Button>
+        )}
       </div>
 
       <input 
