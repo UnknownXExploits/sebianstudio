@@ -14,6 +14,7 @@ import { ExportSDKPanel } from './panels/ExportSDKPanel';
 import { PublishPanel } from './panels/PublishPanel';
 import { DeployPanel } from './panels/DeployPanel';
 import { SettingsPanel } from './panels/SettingsPanel';
+import { DownloadSebianPanel } from './panels/DownloadSebianPanel';
 import { SandboxStatus } from './SandboxStatus';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { vfs } from '@/sebian/vfs';
@@ -30,6 +31,7 @@ import {
   Minimize2,
   Download,
   Globe,
+  HardDrive,
   Rocket,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,7 +42,7 @@ export function IDELayout() {
   const [fileContent, setFileContent] = useState<string>('');
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai' | 'export' | 'publish' | 'deploy' | 'settings'>('preview');
+  const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai' | 'export' | 'publish' | 'deploy' | 'settings' | 'download'>('preview');
   const [bottomPanel, setBottomPanel] = useState<'console' | 'terminal'>('console');
   const [mobileTab, setMobileTab] = useState('editor');
   const [isBottomExpanded, setIsBottomExpanded] = useState(true);
@@ -175,6 +177,9 @@ export function IDELayout() {
                 <TabsTrigger value="settings" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
                   <Settings className="h-3 w-3 mr-1" />Settings
                 </TabsTrigger>
+                <TabsTrigger value="download" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
+                  <HardDrive className="h-3 w-3 mr-1" />Runtime
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="editor" className="flex-1 m-0 mt-0 min-h-0">
@@ -200,6 +205,9 @@ export function IDELayout() {
               </TabsContent>
               <TabsContent value="settings" className="flex-1 m-0 mt-0 min-h-0">
                 <SettingsPanel />
+              </TabsContent>
+              <TabsContent value="download" className="flex-1 m-0 mt-0 min-h-0">
+                <DownloadSebianPanel />
               </TabsContent>
             </Tabs>
 
@@ -245,6 +253,9 @@ export function IDELayout() {
                             <TabsTrigger value="settings" className="data-[state=active]:bg-background shrink-0">
                               <Settings className="h-3.5 w-3.5 mr-1.5" />Settings
                             </TabsTrigger>
+                            <TabsTrigger value="download" className="data-[state=active]:bg-background shrink-0">
+                              <HardDrive className="h-3.5 w-3.5 mr-1.5" />Runtime
+                            </TabsTrigger>
                           </TabsList>
                           
                           <TabsContent value="preview" className="flex-1 m-0 mt-0">
@@ -273,6 +284,9 @@ export function IDELayout() {
                           </TabsContent>
                           <TabsContent value="settings" className="flex-1 m-0 mt-0">
                             <SettingsPanel />
+                          </TabsContent>
+                          <TabsContent value="download" className="flex-1 m-0 mt-0">
+                            <DownloadSebianPanel />
                           </TabsContent>
                         </Tabs>
                       </div>
