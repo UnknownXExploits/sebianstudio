@@ -121,6 +121,12 @@ export class SebianVM {
       this.state.modules.set('time', timeModule);
     }
 
+    // Load memory module (Level 1 only - buffer capability)
+    if (this.hasCapability('buffer')) {
+      const memoryModule = createNativeModule('memory', this);
+      this.state.modules.set('memory', memoryModule);
+    }
+
     // Load Sebian special module for sandbox control
     const sebianVMModule = this.createSebianVMModule();
     this.state.modules.set('Sebian', sebianVMModule);

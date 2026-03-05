@@ -15,6 +15,7 @@ import { PublishPanel } from './panels/PublishPanel';
 import { DeployPanel } from './panels/DeployPanel';
 import { SettingsPanel } from './panels/SettingsPanel';
 import { DownloadSebianPanel } from './panels/DownloadSebianPanel';
+import { APIPanel } from './panels/APIPanel';
 import { SandboxStatus } from './SandboxStatus';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { vfs } from '@/sebian/vfs';
@@ -33,6 +34,7 @@ import {
   Globe,
   HardDrive,
   Rocket,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -42,7 +44,7 @@ export function IDELayout() {
   const [fileContent, setFileContent] = useState<string>('');
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai' | 'export' | 'publish' | 'deploy' | 'settings' | 'download'>('preview');
+  const [rightPanel, setRightPanel] = useState<'preview' | 'debug' | 'docs' | 'commands' | 'ai' | 'export' | 'publish' | 'deploy' | 'settings' | 'download' | 'api'>('preview');
   const [bottomPanel, setBottomPanel] = useState<'console' | 'terminal'>('console');
   const [mobileTab, setMobileTab] = useState('editor');
   const [isBottomExpanded, setIsBottomExpanded] = useState(true);
@@ -180,6 +182,9 @@ export function IDELayout() {
                 <TabsTrigger value="download" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
                   <HardDrive className="h-3 w-3 mr-1" />Runtime
                 </TabsTrigger>
+                <TabsTrigger value="api" className="data-[state=active]:bg-background text-xs h-7 shrink-0">
+                  <Zap className="h-3 w-3 mr-1" />API
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="editor" className="flex-1 m-0 mt-0 min-h-0">
@@ -208,6 +213,9 @@ export function IDELayout() {
               </TabsContent>
               <TabsContent value="download" className="flex-1 m-0 mt-0 min-h-0">
                 <DownloadSebianPanel />
+              </TabsContent>
+              <TabsContent value="api" className="flex-1 m-0 mt-0 min-h-0">
+                <APIPanel currentCode={fileContent} />
               </TabsContent>
             </Tabs>
 
@@ -256,6 +264,9 @@ export function IDELayout() {
                             <TabsTrigger value="download" className="data-[state=active]:bg-background shrink-0">
                               <HardDrive className="h-3.5 w-3.5 mr-1.5" />Runtime
                             </TabsTrigger>
+                            <TabsTrigger value="api" className="data-[state=active]:bg-background shrink-0">
+                              <Zap className="h-3.5 w-3.5 mr-1.5" />API
+                            </TabsTrigger>
                           </TabsList>
                           
                           <TabsContent value="preview" className="flex-1 m-0 mt-0">
@@ -287,6 +298,9 @@ export function IDELayout() {
                           </TabsContent>
                           <TabsContent value="download" className="flex-1 m-0 mt-0">
                             <DownloadSebianPanel />
+                          </TabsContent>
+                          <TabsContent value="api" className="flex-1 m-0 mt-0">
+                            <APIPanel currentCode={fileContent} />
                           </TabsContent>
                         </Tabs>
                       </div>

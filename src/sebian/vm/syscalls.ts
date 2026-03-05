@@ -110,6 +110,14 @@ export const SYSCALL_IDS = {
   BUFFER_READ: 0x0B01,
   BUFFER_WRITE: 0x0B02,
   BUFFER_LENGTH: 0x0B03,
+
+  // Memory syscalls (requires 'buffer' capability - Level 1 only)
+  MEMORY_ALLOC: 0x0C00,
+  MEMORY_READ: 0x0C01,
+  MEMORY_WRITE: 0x0C02,
+  MEMORY_FREE: 0x0C03,
+  MEMORY_SIZE: 0x0C04,
+  MEMORY_COPY: 0x0C05,
 };
 
 // Map syscall IDs to required capabilities
@@ -207,10 +215,21 @@ const SYSCALL_CAPABILITIES: Record<number, Capability | null> = {
   [SYSCALL_IDS.BUFFER_READ]: 'buffer',
   [SYSCALL_IDS.BUFFER_WRITE]: 'buffer',
   [SYSCALL_IDS.BUFFER_LENGTH]: 'buffer',
+
+  [SYSCALL_IDS.MEMORY_ALLOC]: 'buffer',
+  [SYSCALL_IDS.MEMORY_READ]: 'buffer',
+  [SYSCALL_IDS.MEMORY_WRITE]: 'buffer',
+  [SYSCALL_IDS.MEMORY_FREE]: 'buffer',
+  [SYSCALL_IDS.MEMORY_SIZE]: 'buffer',
+  [SYSCALL_IDS.MEMORY_COPY]: 'buffer',
 };
 
 // Virtual file system storage
 const virtualFS = new Map<string, string>();
+
+// Virtual memory storage (C++ style ReadProcessMemory/WriteProcessMemory simulation)
+const memoryBlocks = new Map<number, ArrayBuffer>();
+let memoryHandleCounter = 1;
 
 // Timer storage
 const timers = new Map<number, number>();
@@ -530,6 +549,80 @@ export function executeSyscall(
       return { success: true, value: { type: 'number', value: id } };
     }
     
+    // Memory syscalls - C++ style readMemory/writeMemory
+    case SYSCALL_IDS.MEMORY_ALLOC: {
+      if (args.length === 0 || args[0].type !== 'number') return { success: false, error: 'allocMemory requires size (number)' };
+      const size = Math.floor(args[0].value);
+      if (size <= 0 || size > 1024 * 1024 * 64) return { success: false, error: 'Invalid memory size (1 - 64MB)' };
+      const handle = memoryHandleCounter++;
+      memoryBlocks.set(handle, new ArrayBuffer(size));
+      return { success: true, value: { type: 'number', value: handle } };
+    }
+
+    case SYSCALL_IDS.MEMORY_READ: {
+      if (args.length < 3 || args[0].type !== 'number' || args[1].type !== 'number' || args[2].type !== 'number') {
+        return { success: false, error: 'readMemory(handle, offset, size)' };
+      }
+      const block = memoryBlocks.get(args[0].value);
+      if (!block) return { success: false, error: 'Invalid memory handle' };
+      const offset = Math.floor(args[1].value);
+      const readSize = Math.floor(args[2].value);
+      if (offset < 0 || offset + readSize > block.byteLength) return { success: false, error: 'Memory access out of bounds' };
+      const view = new Uint8Array(block, offset, readSize);
+      const result: SebianValue[] = [];
+      for (let i = 0; i < readSize; i++) {
+        result.push({ type: 'number', value: view[i] });
+      }
+      return { success: true, value: { type: 'array', value: result } };
+    }
+
+    case SYSCALL_IDS.MEMORY_WRITE: {
+      if (args.length < 3 || args[0].type !== 'number' || args[1].type !== 'number' || args[2].type !== 'array') {
+        return { success: false, error: 'writeMemory(handle, offset, bytes[])' };
+      }
+      const block = memoryBlocks.get(args[0].value);
+      if (!block) return { success: false, error: 'Invalid memory handle' };
+      const offset = Math.floor(args[1].value);
+      const bytes = args[2].value;
+      if (offset < 0 || offset + bytes.length > block.byteLength) return { success: false, error: 'Memory access out of bounds' };
+      const view = new Uint8Array(block, offset, bytes.length);
+      for (let i = 0; i < bytes.length; i++) {
+        const b = bytes[i];
+        view[i] = b.type === 'number' ? (b.value & 0xFF) : 0;
+      }
+      return { success: true, value: { type: 'number', value: bytes.length } };
+    }
+
+    case SYSCALL_IDS.MEMORY_FREE: {
+      if (args.length === 0 || args[0].type !== 'number') return { success: false, error: 'freeMemory requires handle' };
+      const freed = memoryBlocks.delete(args[0].value);
+      return { success: true, value: { type: 'boolean', value: freed } };
+    }
+
+    case SYSCALL_IDS.MEMORY_SIZE: {
+      if (args.length === 0 || args[0].type !== 'number') return { success: false, error: 'memorySize requires handle' };
+      const block = memoryBlocks.get(args[0].value);
+      if (!block) return { success: false, error: 'Invalid memory handle' };
+      return { success: true, value: { type: 'number', value: block.byteLength } };
+    }
+
+    case SYSCALL_IDS.MEMORY_COPY: {
+      if (args.length < 5) return { success: false, error: 'memoryCopy(srcHandle, srcOffset, dstHandle, dstOffset, size)' };
+      const srcBlock = memoryBlocks.get((args[0] as any).value);
+      const dstBlock = memoryBlocks.get((args[2] as any).value);
+      if (!srcBlock || !dstBlock) return { success: false, error: 'Invalid memory handle' };
+      const srcOff = Math.floor((args[1] as any).value);
+      const dstOff = Math.floor((args[3] as any).value);
+      const copySize = Math.floor((args[4] as any).value);
+      if (srcOff + copySize > srcBlock.byteLength || dstOff + copySize > dstBlock.byteLength) {
+        return { success: false, error: 'Memory copy out of bounds' };
+      }
+      const src = new Uint8Array(srcBlock, srcOff, copySize);
+      const dst = new Uint8Array(dstBlock, dstOff, copySize);
+      dst.set(src);
+      return { success: true, value: { type: 'number', value: copySize } };
+    }
+
     default:
       return { success: false, error: `Unknown syscall: 0x${syscallId.toString(16)}` };
   }

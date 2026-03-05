@@ -33,6 +33,9 @@ export function createNativeModule(name: string, vm: SebianVM): SebianModule {
     case 'time':
       createTimeModule(exports);
       break;
+    case 'memory':
+      createMemoryModule(exports);
+      break;
   }
   
   return { name, exports, loaded: true };
@@ -576,6 +579,157 @@ function createTimeModule(exports: Map<string, SebianValue>): void {
       return { type: 'string', value: new Date().toISOString() };
     }
     return { type: 'string', value: new Date(args[0].value).toISOString() };
+  }));
+}
+
+// C++ style memory management module (Level 1 - Full Power)
+// Simulates ReadProcessMemory / WriteProcessMemory
+const memoryBlocks = new Map<number, ArrayBuffer>();
+let memoryHandleId = 1;
+
+function createMemoryModule(exports: Map<string, SebianValue>): void {
+  // allocMemory(size) -> handle
+  exports.set('alloc', createNative((args) => {
+    if (args.length === 0 || args[0].type !== 'number') return { type: 'null' };
+    const size = Math.floor(args[0].value);
+    if (size <= 0 || size > 64 * 1024 * 1024) return { type: 'null' };
+    const handle = memoryHandleId++;
+    memoryBlocks.set(handle, new ArrayBuffer(size));
+    return { type: 'number', value: handle };
+  }));
+
+  // readMemory(handle, offset, size) -> array of bytes
+  exports.set('read', createNative((args) => {
+    if (args.length < 3 || args[0].type !== 'number' || args[1].type !== 'number' || args[2].type !== 'number') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    const offset = Math.floor(args[1].value);
+    const size = Math.floor(args[2].value);
+    if (offset < 0 || offset + size > block.byteLength) return { type: 'null' };
+    const view = new Uint8Array(block, offset, size);
+    return { type: 'array', value: Array.from(view).map(b => ({ type: 'number' as const, value: b })) };
+  }));
+
+  // writeMemory(handle, offset, bytes[]) -> number of bytes written
+  exports.set('write', createNative((args) => {
+    if (args.length < 3 || args[0].type !== 'number' || args[1].type !== 'number' || args[2].type !== 'array') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    const offset = Math.floor(args[1].value);
+    const bytes = args[2].value;
+    if (offset < 0 || offset + bytes.length > block.byteLength) return { type: 'null' };
+    const view = new Uint8Array(block, offset, bytes.length);
+    for (let i = 0; i < bytes.length; i++) {
+      const b = bytes[i];
+      view[i] = b.type === 'number' ? (b.value & 0xFF) : 0;
+    }
+    return { type: 'number', value: bytes.length };
+  }));
+
+  // freeMemory(handle) -> boolean
+  exports.set('free', createNative((args) => {
+    if (args.length === 0 || args[0].type !== 'number') return { type: 'boolean', value: false };
+    return { type: 'boolean', value: memoryBlocks.delete(args[0].value) };
+  }));
+
+  // memorySize(handle) -> number
+  exports.set('size', createNative((args) => {
+    if (args.length === 0 || args[0].type !== 'number') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    return { type: 'number', value: block.byteLength };
+  }));
+
+  // readInt32(handle, offset) -> number  
+  exports.set('readInt32', createNative((args) => {
+    if (args.length < 2 || args[0].type !== 'number' || args[1].type !== 'number') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    const offset = Math.floor(args[1].value);
+    if (offset < 0 || offset + 4 > block.byteLength) return { type: 'null' };
+    const view = new DataView(block);
+    return { type: 'number', value: view.getInt32(offset, true) };
+  }));
+
+  // writeInt32(handle, offset, value)
+  exports.set('writeInt32', createNative((args) => {
+    if (args.length < 3 || args[0].type !== 'number' || args[1].type !== 'number' || args[2].type !== 'number') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    const offset = Math.floor(args[1].value);
+    if (offset < 0 || offset + 4 > block.byteLength) return { type: 'null' };
+    const view = new DataView(block);
+    view.setInt32(offset, args[2].value, true);
+    return { type: 'boolean', value: true };
+  }));
+
+  // readFloat64(handle, offset) -> number
+  exports.set('readFloat64', createNative((args) => {
+    if (args.length < 2 || args[0].type !== 'number' || args[1].type !== 'number') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    const offset = Math.floor(args[1].value);
+    if (offset < 0 || offset + 8 > block.byteLength) return { type: 'null' };
+    const view = new DataView(block);
+    return { type: 'number', value: view.getFloat64(offset, true) };
+  }));
+
+  // writeFloat64(handle, offset, value)
+  exports.set('writeFloat64', createNative((args) => {
+    if (args.length < 3 || args[0].type !== 'number' || args[1].type !== 'number' || args[2].type !== 'number') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    const offset = Math.floor(args[1].value);
+    if (offset < 0 || offset + 8 > block.byteLength) return { type: 'null' };
+    const view = new DataView(block);
+    view.setFloat64(offset, args[2].value, true);
+    return { type: 'boolean', value: true };
+  }));
+
+  // copyMemory(srcHandle, srcOffset, dstHandle, dstOffset, size) -> bytes copied
+  exports.set('copy', createNative((args) => {
+    if (args.length < 5) return { type: 'null' };
+    const srcBlock = memoryBlocks.get(args[0].type === 'number' ? args[0].value : -1);
+    const dstBlock = memoryBlocks.get(args[2].type === 'number' ? args[2].value : -1);
+    if (!srcBlock || !dstBlock) return { type: 'null' };
+    const srcOff = args[1].type === 'number' ? Math.floor(args[1].value) : 0;
+    const dstOff = args[3].type === 'number' ? Math.floor(args[3].value) : 0;
+    const copySize = args[4].type === 'number' ? Math.floor(args[4].value) : 0;
+    if (srcOff + copySize > srcBlock.byteLength || dstOff + copySize > dstBlock.byteLength) return { type: 'null' };
+    new Uint8Array(dstBlock, dstOff, copySize).set(new Uint8Array(srcBlock, srcOff, copySize));
+    return { type: 'number', value: copySize };
+  }));
+
+  // readString(handle, offset, maxLen) -> string (reads null-terminated)
+  exports.set('readString', createNative((args) => {
+    if (args.length < 2 || args[0].type !== 'number' || args[1].type !== 'number') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    const offset = Math.floor(args[1].value);
+    const maxLen = args.length > 2 && args[2].type === 'number' ? Math.floor(args[2].value) : 256;
+    const view = new Uint8Array(block, offset, Math.min(maxLen, block.byteLength - offset));
+    let str = '';
+    for (let i = 0; i < view.length; i++) {
+      if (view[i] === 0) break;
+      str += String.fromCharCode(view[i]);
+    }
+    return { type: 'string', value: str };
+  }));
+
+  // writeString(handle, offset, str) -> bytes written
+  exports.set('writeString', createNative((args) => {
+    if (args.length < 3 || args[0].type !== 'number' || args[1].type !== 'number' || args[2].type !== 'string') return { type: 'null' };
+    const block = memoryBlocks.get(args[0].value);
+    if (!block) return { type: 'null' };
+    const offset = Math.floor(args[1].value);
+    const str = args[2].value;
+    if (offset + str.length + 1 > block.byteLength) return { type: 'null' };
+    const view = new Uint8Array(block, offset, str.length + 1);
+    for (let i = 0; i < str.length; i++) {
+      view[i] = str.charCodeAt(i) & 0xFF;
+    }
+    view[str.length] = 0; // null terminator
+    return { type: 'number', value: str.length + 1 };
   }));
 }
 

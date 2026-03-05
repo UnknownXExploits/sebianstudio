@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { ChevronRight, ChevronDown, Book, Code, Cpu, Shield, Terminal, Layers } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import { Book, Code, Cpu, Shield, Layers, Database } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DocSection {
@@ -10,6 +10,10 @@ interface DocSection {
   icon: React.ReactNode;
   content: React.ReactNode;
 }
+
+const CodeBlock = ({ children }: { children: string }) => (
+  <pre className="bg-secondary/50 p-3 rounded text-sm overflow-x-auto font-mono">{children}</pre>
+);
 
 const DOCS: DocSection[] = [
   {
@@ -20,32 +24,28 @@ const DOCS: DocSection[] = [
       <div className="space-y-4">
         <h2 className="text-xl font-bold">Welcome to Sebian</h2>
         <p className="text-muted-foreground">
-          Sebian is a custom programming language that runs on SebianVM - a real virtual machine
+          Sebian is a custom programming language that runs on SebianVM — a real virtual machine
           that executes bytecode directly. No JavaScript transpilation!
         </p>
         
         <h3 className="text-lg font-semibold mt-6">Your First Program</h3>
-        <pre className="bg-secondary/50 p-4 rounded-lg text-sm overflow-x-auto">
-{`// Hello World in Sebian
-Import SebianVM from Sebian
-Import UI from sebian
+        <CodeBlock>{`// Hello World in Sebian
+from core import print
 
-Create text
-[
-  content= "Hello, Sebian!"
-  style= "font-size: 24px; color: #00ff88;"
+Create text hello [
+  content="Hello, Sebian!"
+  style="font-size: 24px; font-weight: 600;"
 ]
 
-from ui import render
-render(text)`}
-        </pre>
+print("Hello from SebianVM!")`}</CodeBlock>
         
         <h3 className="text-lg font-semibold mt-6">Key Concepts</h3>
         <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-          <li><strong>Imports</strong> - Use <code>Import X from Y</code> to import modules</li>
-          <li><strong>Create</strong> - Use <code>Create type [ ... ]</code> to create UI elements</li>
-          <li><strong>Properties</strong> - Set properties with <code>name= "value"</code></li>
-          <li><strong>Bindings</strong> - Bind events with <code>element.function=handler</code></li>
+          <li><strong>Imports</strong> — <code>from module import name</code> or <code>Import name from module</code></li>
+          <li><strong>Variables</strong> — <code>local x = 0</code> (always use <code>local</code>)</li>
+          <li><strong>Functions</strong> — <code>function name() [ body ]</code> (square brackets, NOT braces)</li>
+          <li><strong>UI</strong> — <code>Create type name [ property=value ]</code></li>
+          <li><strong>Events</strong> — <code>onClick.function=handlerName</code></li>
         </ul>
       </div>
     ),
@@ -56,71 +56,180 @@ render(text)`}
     icon: <Code className="h-4 w-4" />,
     content: (
       <div className="space-y-4">
-        <h2 className="text-xl font-bold">Sebian Syntax Reference</h2>
+        <h2 className="text-xl font-bold">Sebian Syntax Reference v2.0</h2>
         
         <h3 className="text-lg font-semibold">Imports</h3>
-        <pre className="bg-secondary/50 p-3 rounded text-sm">
-{`// Standard import
-Import ModuleName from source
+        <CodeBlock>{`// Preferred syntax
+from core import print
+from math import PI, sqrt, random
 
-// Destructured import  
-from module import function
-
-// Multiple imports
-from ui import buttons, labels`}
-        </pre>
+// Alternative syntax
+Import print from core`}</CodeBlock>
+        <p className="text-xs text-destructive mt-1">❌ NEVER: <code>import {'{ print }'} from 'core'</code> — No braces, no quotes on modules</p>
         
         <h3 className="text-lg font-semibold mt-4">Variables</h3>
-        <pre className="bg-secondary/50 p-3 rounded text-sm">
-{`// Local variable
+        <CodeBlock>{`// Always use 'local' to declare
 local counter = 0
+local message = "Hello"
+local active = true
 
-// Assignment
-counter = counter + 1`}
-        </pre>
+// Assignment after declaration
+counter = counter + 1`}</CodeBlock>
+        <p className="text-xs text-destructive mt-1">❌ NEVER: <code>let</code>, <code>const</code>, <code>var</code>, <code>:=</code></p>
         
         <h3 className="text-lg font-semibold mt-4">Functions</h3>
-        <pre className="bg-secondary/50 p-3 rounded text-sm">
-{`function greet(name)
-[
+        <CodeBlock>{`function greet(name) [
   return "Hello, " + name
 ]
 
-// Call function
-local message = greet("World")`}
-        </pre>
-        
-        <h3 className="text-lg font-semibold mt-4">UI Creation</h3>
-        <pre className="bg-secondary/50 p-3 rounded text-sm">
-{`Create button
-[
-  Buttonname= "myButton"
-  text= "Click Me"
-  onClick.function= handleClick
+function factorial(n) [
+  if n <= 1 [
+    return 1
+  ]
+  return n * factorial(n - 1)
 ]
 
-Repeat local button creation
-[
-  Buttonname= "clonedButton"
-]`}
-        </pre>
+local result = greet("World")`}</CodeBlock>
+        <p className="text-xs text-destructive mt-1">❌ NEVER: <code>{'function() { }'}</code> — Use <code>[ ]</code> not <code>{'{ }'}</code>. No arrow functions.</p>
+        
+        <h3 className="text-lg font-semibold mt-4">UI Components</h3>
+        <CodeBlock>{`Create container app [
+  style="display: flex; gap: 10px; padding: 20px;"
+]
+
+Create text greeting [
+  content="Hello World"
+  style="font-size: 24px; font-weight: bold;"
+]
+
+Create button submit [
+  text="Click Me"
+  style="padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px;"
+  onClick.function=handleClick
+]
+
+Create input nameField [
+  placeholder="Enter name"
+  style="padding: 10px; border: 1px solid #ccc;"
+]`}</CodeBlock>
+        <p className="text-xs text-destructive mt-1">❌ NEVER: JSX tags, braces for properties, colons, commas between props</p>
         
         <h3 className="text-lg font-semibold mt-4">Control Flow</h3>
-        <pre className="bg-secondary/50 p-3 rounded text-sm">
-{`if condition
-[
-  // do something
-]
-else
-[
-  // do something else
+        <CodeBlock>{`if count > 10 [
+  print("Big number")
+] else [
+  print("Small number")
 ]
 
-while condition
-[
-  // loop body
-]`}
-        </pre>
+while running [
+  processNext()
+]
+
+for item in items [
+  print(item)
+]
+
+for i in range(10) [
+  print(i)
+]`}</CodeBlock>
+        <p className="text-xs text-destructive mt-1">❌ NEVER: parentheses around conditions, braces for blocks</p>
+
+        <h3 className="text-lg font-semibold mt-4">Operators</h3>
+        <CodeBlock>{`// Arithmetic: + - * / % ^
+// Comparison: == != < <= > >=
+// Logical: and or not (NOT && || !)
+
+if x > 0 and not finished [
+  print("Still going")
+]`}</CodeBlock>
+      </div>
+    ),
+  },
+  {
+    id: 'memory',
+    title: 'Memory Functions',
+    icon: <Database className="h-4 w-4" />,
+    content: (
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold">Memory Module (Level 1)</h2>
+        <p className="text-muted-foreground">
+          C++ style memory management. Allocate buffers, read/write bytes at offsets.
+          Requires Sandbox Level 1 (Full Power).
+        </p>
+        
+        <h3 className="text-lg font-semibold mt-4">Basic Usage</h3>
+        <CodeBlock>{`from memory import alloc, read, write, free
+
+// Allocate 1024 bytes
+local buf = alloc(1024)
+
+// Write bytes at offset 0
+write(buf, 0, [72, 101, 108, 108, 111])
+
+// Read 5 bytes from offset 0
+local bytes = read(buf, 0, 5)
+print(bytes)  // [72, 101, 108, 108, 111]
+
+// Free memory
+free(buf)`}</CodeBlock>
+        
+        <h3 className="text-lg font-semibold mt-4">Typed Access</h3>
+        <CodeBlock>{`from memory import alloc, readInt32, writeInt32, readFloat64, writeFloat64
+
+local buf = alloc(256)
+
+// Write/read 32-bit integers
+writeInt32(buf, 0, 42)
+local val = readInt32(buf, 0)
+print(val)  // 42
+
+// Write/read 64-bit floats
+writeFloat64(buf, 8, 3.14159)
+local pi = readFloat64(buf, 8)
+print(pi)  // 3.14159`}</CodeBlock>
+
+        <h3 className="text-lg font-semibold mt-4">String Operations</h3>
+        <CodeBlock>{`from memory import alloc, readString, writeString
+
+local buf = alloc(256)
+writeString(buf, 0, "Hello World")
+local str = readString(buf, 0)
+print(str)  // Hello World`}</CodeBlock>
+
+        <h3 className="text-lg font-semibold mt-4">Memory Copy</h3>
+        <CodeBlock>{`from memory import alloc, copy, write, read
+
+local src = alloc(64)
+local dst = alloc(64)
+
+write(src, 0, [1, 2, 3, 4, 5])
+copy(src, 0, dst, 0, 5)
+
+local result = read(dst, 0, 5)
+print(result)  // [1, 2, 3, 4, 5]`}</CodeBlock>
+
+        <h3 className="text-lg font-semibold mt-4">Available Functions</h3>
+        <div className="grid gap-2 mt-2">
+          {[
+            { name: 'alloc(size)', desc: 'Allocate memory buffer, returns handle' },
+            { name: 'read(handle, offset, size)', desc: 'Read bytes as array' },
+            { name: 'write(handle, offset, bytes[])', desc: 'Write byte array' },
+            { name: 'free(handle)', desc: 'Free allocated memory' },
+            { name: 'size(handle)', desc: 'Get buffer size in bytes' },
+            { name: 'readInt32(handle, offset)', desc: 'Read 32-bit signed integer' },
+            { name: 'writeInt32(handle, offset, val)', desc: 'Write 32-bit integer' },
+            { name: 'readFloat64(handle, offset)', desc: 'Read 64-bit float' },
+            { name: 'writeFloat64(handle, offset, val)', desc: 'Write 64-bit float' },
+            { name: 'readString(handle, offset, maxLen?)', desc: 'Read null-terminated string' },
+            { name: 'writeString(handle, offset, str)', desc: 'Write null-terminated string' },
+            { name: 'copy(src, srcOff, dst, dstOff, size)', desc: 'Copy between buffers' },
+          ].map(fn => (
+            <div key={fn.name} className="bg-secondary/30 p-2 rounded">
+              <code className="text-primary font-bold text-xs">{fn.name}</code>
+              <p className="text-[10px] text-muted-foreground">{fn.desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
     ),
   },
@@ -155,18 +264,13 @@ while condition
         
         <h3 className="text-lg font-semibold mt-6">VM Components</h3>
         <ul className="space-y-2 text-muted-foreground">
-          <li><strong>Stack</strong> - Operand stack for computations</li>
-          <li><strong>Call Frames</strong> - Function call stack with locals</li>
-          <li><strong>Heap</strong> - Object storage with garbage collection</li>
-          <li><strong>Modules</strong> - Loaded module registry</li>
-          <li><strong>UI Tree</strong> - Virtual UI node hierarchy</li>
+          <li><strong>Stack</strong> — Operand stack for computations</li>
+          <li><strong>Call Frames</strong> — Function call stack with locals</li>
+          <li><strong>Heap</strong> — Object storage with garbage collection</li>
+          <li><strong>Modules</strong> — Loaded module registry</li>
+          <li><strong>UI Tree</strong> — Virtual UI node hierarchy</li>
+          <li><strong>Memory</strong> — Virtual memory buffers (Level 1)</li>
         </ul>
-        
-        <h3 className="text-lg font-semibold mt-6">Instruction Set</h3>
-        <p className="text-sm text-muted-foreground">
-          50+ opcodes including stack ops, variable access, arithmetic, 
-          control flow, function calls, UI operations, and syscalls.
-        </p>
       </div>
     ),
   },
@@ -182,7 +286,7 @@ while condition
           <div className="border border-green-500/30 bg-green-500/5 p-4 rounded-lg">
             <h3 className="font-bold text-green-500 flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              Level 3 - Restricted
+              Level 3 — Restricted
             </h3>
             <p className="text-sm text-muted-foreground mt-2">
               Pure computation only. No DOM, network, or file access.
@@ -195,7 +299,7 @@ while condition
           <div className="border border-primary/30 bg-primary/5 p-4 rounded-lg">
             <h3 className="font-bold text-primary flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              Level 2 - Standard (Default)
+              Level 2 — Standard (Default)
             </h3>
             <p className="text-sm text-muted-foreground mt-2">
               Balanced sandbox with VFS, UI, and proxied networking.
@@ -208,24 +312,22 @@ while condition
           <div className="border border-destructive/30 bg-destructive/5 p-4 rounded-lg">
             <h3 className="font-bold text-destructive flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              Level 1 - Full Power
+              Level 1 — Full Power
             </h3>
             <p className="text-sm text-muted-foreground mt-2">
-              Unrestricted access including DOM and host bindings.
+              Unrestricted. DOM, host, <strong>memory access</strong>, and unsafe net.
               <strong> Requires explicit confirmation!</strong>
             </p>
             <p className="text-xs mt-2">
-              Capabilities: <code>+ host, dom, buffer, unsafe_net</code>
+              Capabilities: <code>+ host, dom, buffer, memory, unsafe_net</code>
             </p>
           </div>
         </div>
         
-        <h3 className="text-lg font-semibold mt-6">Switching Levels in Code</h3>
-        <pre className="bg-secondary/50 p-3 rounded text-sm">
-{`from sebian import SebianVM
+        <h3 className="text-lg font-semibold mt-6">Switching Levels</h3>
+        <CodeBlock>{`Import SebianVM from Sebian
 SebianVM.tools.functions.sandbox.level = 1
-from sandbox.level do function.run`}
-        </pre>
+from sandbox.level do function.run`}</CodeBlock>
       </div>
     ),
   },
@@ -236,23 +338,18 @@ from sandbox.level do function.run`}
     content: (
       <div className="space-y-4">
         <h2 className="text-xl font-bold">Built-in Modules</h2>
-        <p className="text-muted-foreground">
-          Sebian includes a comprehensive standard library with 500+ commands.
-        </p>
         
         <div className="grid gap-3 mt-4">
           {[
-            { name: 'math', desc: 'Mathematical operations, trigonometry, random' },
-            { name: 'string', desc: 'String manipulation, formatting, parsing' },
-            { name: 'array', desc: 'Array operations, map, filter, reduce' },
-            { name: 'ui', desc: 'UI component creation and manipulation' },
-            { name: 'fs', desc: 'Virtual filesystem operations' },
-            { name: 'net', desc: 'HTTP requests, WebSocket, JSON' },
-            { name: 'time', desc: 'Date/time, timers, scheduling' },
-            { name: 'os', desc: 'System info, environment, process' },
-            { name: 'crypto', desc: 'Hashing, encryption, random' },
-            { name: 'graphics', desc: 'Canvas drawing, shapes, images' },
-            { name: 'audio', desc: 'Audio context, oscillators, effects' },
+            { name: 'core', desc: 'print, type, len, str, num, bool, keys, values, range' },
+            { name: 'math', desc: 'PI, E, abs, floor, ceil, sqrt, pow, sin, cos, random, randint, min, max, clamp' },
+            { name: 'string', desc: 'upper, lower, trim, split, join, replace, contains, starts_with, ends_with, substr, repeat' },
+            { name: 'array', desc: 'push, pop, shift, unshift, slice, concat, reverse, includes, index_of, fill' },
+            { name: 'ui', desc: 'create, set_prop, add_child, render, alert, prompt, confirm' },
+            { name: 'fs', desc: 'read, write, exists, delete, list (virtual file system)' },
+            { name: 'net', desc: 'fetch, get, post (proxied networking)' },
+            { name: 'time', desc: 'now, timestamp, format' },
+            { name: 'memory', desc: 'alloc, read, write, free, readInt32, writeFloat64, copy (Level 1 only)' },
           ].map(mod => (
             <div key={mod.name} className="bg-secondary/30 p-3 rounded">
               <span className="font-mono text-primary font-bold">{mod.name}</span>
@@ -261,9 +358,13 @@ from sandbox.level do function.run`}
           ))}
         </div>
         
-        <p className="text-sm text-muted-foreground mt-4">
-          Use the Command Explorer tab to browse all available commands.
-        </p>
+        <h3 className="text-lg font-semibold mt-4">Import Syntax</h3>
+        <CodeBlock>{`// Import specific functions
+from core import print, len
+from math import PI, sqrt
+
+// Import module
+Import SebianVM from Sebian`}</CodeBlock>
       </div>
     ),
   },
