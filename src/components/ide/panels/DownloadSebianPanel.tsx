@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Download, Check, Cpu, Library, Terminal, FileCode, Package, HardDrive, Shield } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Download, Check, Cpu, Terminal, FileCode, HardDrive, Shield, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function DownloadSebianPanel() {
@@ -19,74 +18,139 @@ export function DownloadSebianPanel() {
     URL.revokeObjectURL(url);
   };
 
-  const buildRuntime = (): string => {
-    return `// ================================================
-// SebianVM Runtime v1.0.0
-// Standalone Runtime Environment
-// Generated: ${new Date().toISOString()}
-// ================================================
-// 
-// This is the official Sebian Virtual Machine runtime.
-// Use it to run .seb, .sebc, .sebf, .exe, and .dll files.
-//
-// USAGE:
-//   node sebianvm-runtime.js <file>
-//
-// SUPPORTED FILES:
-//   .seb   - Sebian source code (compiled + executed)
-//   .sebc  - Compiled bytecode (executed directly)
-//   .sebf  - Sebian executable (self-contained)
-//   .exe   - Sebian PE executable (extracts + runs bytecode)
-//   .dll   - Sebian dynamic library (loads exports)
-//
-// ================================================
+  const handleDownload = (id: string, filename: string, content: string, mime: string) => {
+    setDownloading(id);
+    downloadBlob(new Blob([content], { type: mime }), filename);
+    toast.success(`Downloaded ${filename}`);
+    setTimeout(() => setDownloading(null), 1500);
+  };
 
-const fs = require('fs');
-const path = require('path');
+  // Self-contained HTML runtime - NO Node.js required
+  const buildHtmlRuntime = (): string => {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SebianVM Runtime v2.0</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0a0f; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; }
+  .header { background: #111118; border-bottom: 1px solid #2a2a35; padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
+  .header h1 { font-size: 18px; color: #22c55e; }
+  .header span { font-size: 12px; color: #888; }
+  .main { flex: 1; display: flex; gap: 0; }
+  .sidebar { width: 280px; background: #111118; border-right: 1px solid #2a2a35; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .output-area { flex: 1; display: flex; flex-direction: column; }
+  .output { flex: 1; padding: 16px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; line-height: 1.6; overflow-y: auto; white-space: pre-wrap; }
+  .output .line { padding: 2px 0; }
+  .output .error { color: #ef4444; }
+  .output .success { color: #22c55e; }
+  .output .info { color: #3b82f6; }
+  .output .warn { color: #f59e0b; }
+  button { padding: 10px 16px; border: 1px solid #2a2a35; border-radius: 8px; background: #1a1a24; color: #e0e0e0; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+  button:hover { background: #22c55e; color: #0a0a0f; border-color: #22c55e; }
+  button.primary { background: #22c55e; color: #0a0a0f; border-color: #22c55e; font-weight: 600; }
+  button.primary:hover { background: #16a34a; }
+  .drop-zone { border: 2px dashed #2a2a35; border-radius: 12px; padding: 30px; text-align: center; transition: all 0.2s; }
+  .drop-zone.over { border-color: #22c55e; background: #22c55e10; }
+  .drop-zone p { color: #888; font-size: 13px; margin-top: 8px; }
+  input[type="file"] { display: none; }
+  .status { padding: 8px 16px; background: #111118; border-top: 1px solid #2a2a35; font-size: 12px; color: #888; display: flex; justify-content: space-between; }
+  .cmd-input { display: flex; gap: 8px; padding: 8px 16px; border-top: 1px solid #2a2a35; background: #0d0d14; }
+  .cmd-input input { flex: 1; background: transparent; border: 1px solid #2a2a35; border-radius: 6px; padding: 8px 12px; color: #e0e0e0; font-family: monospace; font-size: 13px; outline: none; }
+  .cmd-input input:focus { border-color: #22c55e; }
+  @media (max-width: 768px) { .main { flex-direction: column; } .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #2a2a35; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⚡ SebianVM</h1>
+  <span>Runtime v2.0 — No installation needed</span>
+</div>
 
-// ---- Minimal Sebian VM Core ----
+<div class="main">
+  <div class="sidebar">
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div style="font-size: 32px;">📁</div>
+      <p>Drop a file here or click to browse</p>
+      <p style="font-size: 11px; margin-top: 4px;">.seb .sebc .sebf .exe .dll</p>
+    </div>
+    <input type="file" id="fileInput" accept=".seb,.sebc,.sebf,.exe,.dll" onchange="handleFile(this.files[0])" />
+    <button class="primary" onclick="document.getElementById('fileInput').click()">📂 Open File</button>
+    <button onclick="clearOutput()">🗑️ Clear Output</button>
+    <div style="margin-top: auto; font-size: 11px; color: #666;">
+      <p><strong>Supported:</strong></p>
+      <p>• .exe — PE with SEBX payload</p>
+      <p>• .dll — Dynamic library</p>
+      <p>• .sebf — Self-contained executable</p>
+      <p>• .sebc — Compiled bytecode</p>
+      <p>• .seb — Source (not yet)</p>
+    </div>
+  </div>
+
+  <div class="output-area">
+    <div class="output" id="output">
+<div class="line info">╔══════════════════════════════════════╗</div>
+<div class="line info">║       SebianVM Runtime v2.0          ║</div>
+<div class="line info">║   No Node.js required — runs here!  ║</div>
+<div class="line info">╚══════════════════════════════════════╝</div>
+<div class="line">Drop a .exe, .sebc, .sebf, or .dll file to run it.</div>
+<div class="line">Or type a command below: <span class="info">sebian compile &lt;file&gt;</span></div>
+    </div>
+    <div class="cmd-input">
+      <input id="cmdInput" placeholder="sebian run file.exe | sebian compile file.exe" onkeydown="if(event.key==='Enter')runCommand(this.value)" />
+      <button onclick="runCommand(document.getElementById('cmdInput').value)">Run</button>
+    </div>
+  </div>
+</div>
+
+<div class="status">
+  <span id="statusText">Ready</span>
+  <span id="instrCount"></span>
+</div>
+
+<script>
+// ═══════════ MINI SEBIAN VM (browser-native) ═══════════
 class SebianVM {
   constructor() {
     this.stack = [];
     this.globals = new Map();
     this.frames = [];
     this.halted = false;
-    this.outputHandler = console.log;
-    this.modules = new Map();
+    this.output = [];
+    this.instructionCount = 0;
+    this.maxInstructions = 10000000;
     this._initStdlib();
   }
 
-  setOutputHandler(fn) { this.outputHandler = fn; }
-
   _initStdlib() {
-    // Core builtins
+    const self = this;
     this.globals.set('print', { type: 'native', value: (args) => {
-      const msg = args.map(a => this._toString(a)).join(' ');
-      this.outputHandler(msg);
+      const msg = args.map(a => self._toString(a)).join(' ');
+      self.output.push(msg);
       return { type: 'null' };
     }});
     this.globals.set('len', { type: 'native', value: (args) => {
       const v = args[0];
-      if (v.type === 'string') return { type: 'number', value: v.value.length };
-      if (v.type === 'array') return { type: 'number', value: v.value.length };
+      if (v?.type === 'string') return { type: 'number', value: v.value.length };
+      if (v?.type === 'array') return { type: 'number', value: v.value.length };
       return { type: 'number', value: 0 };
     }});
-    this.globals.set('str', { type: 'native', value: (args) => {
-      return { type: 'string', value: this._toString(args[0]) };
-    }});
-    this.globals.set('num', { type: 'native', value: (args) => {
-      return { type: 'number', value: Number(this._toString(args[0])) || 0 };
-    }});
-    this.globals.set('type', { type: 'native', value: (args) => {
-      return { type: 'string', value: args[0]?.type || 'null' };
-    }});
-    // Math
+    this.globals.set('str', { type: 'native', value: (args) => ({ type: 'string', value: self._toString(args[0]) }) });
+    this.globals.set('num', { type: 'native', value: (args) => ({ type: 'number', value: Number(self._toString(args[0])) || 0 }) });
+    this.globals.set('type', { type: 'native', value: (args) => ({ type: 'string', value: args[0]?.type || 'null' }) });
     this.globals.set('abs', { type: 'native', value: (args) => ({ type: 'number', value: Math.abs(args[0]?.value || 0) }) });
     this.globals.set('floor', { type: 'native', value: (args) => ({ type: 'number', value: Math.floor(args[0]?.value || 0) }) });
     this.globals.set('ceil', { type: 'native', value: (args) => ({ type: 'number', value: Math.ceil(args[0]?.value || 0) }) });
     this.globals.set('round', { type: 'native', value: (args) => ({ type: 'number', value: Math.round(args[0]?.value || 0) }) });
     this.globals.set('sqrt', { type: 'native', value: (args) => ({ type: 'number', value: Math.sqrt(args[0]?.value || 0) }) });
     this.globals.set('random', { type: 'native', value: () => ({ type: 'number', value: Math.random() }) });
+    this.globals.set('range', { type: 'native', value: (args) => {
+      if (!args[0] || args[0].type !== 'number') return { type: 'array', value: [] };
+      const r = []; for (let i = 0; i < args[0].value; i++) r.push({ type: 'number', value: i });
+      return { type: 'array', value: r };
+    }});
   }
 
   _toString(v) {
@@ -97,239 +161,236 @@ class SebianVM {
       case 'number': return String(v.value);
       case 'string': return v.value;
       case 'array': return '[' + v.value.map(x => this._toString(x)).join(', ') + ']';
-      case 'object': return '{object}';
-      case 'function': case 'closure': return '<fn>';
-      case 'native': return '<native fn>';
-      default: return String(v.value || v.type);
-    }
-  }
-
-  run(chunk) {
-    if (!chunk || !chunk.code) throw new Error('Invalid bytecode chunk');
-    const mainFn = { name: chunk.name || 'main', arity: 0, chunk, upvalueCount: 0 };
-    const mainClosure = { function: mainFn, upvalues: [] };
-    this.frames.push({ closure: mainClosure, ip: 0, stackBase: 0, returnAddress: 0 });
-    this._execute();
-  }
-
-  _execute() {
-    const MAX = 1000000;
-    let count = 0;
-    while (this.frames.length > 0 && !this.halted && count < MAX) {
-      count++;
-      const frame = this.frames[this.frames.length - 1];
-      const chunk = frame.closure.function.chunk;
-      if (frame.ip >= chunk.code.length) { this.frames.pop(); continue; }
-      const instr = chunk.code[frame.ip++];
-      this._dispatch(instr, frame, chunk);
-    }
-  }
-
-  _dispatch(instr, frame, chunk) {
-    const op = instr.opcode;
-    switch (op) {
-      case 0x01: this.stack.push(chunk.constants[instr.operands[0]]); break;
-      case 0x02: this.stack.pop(); break;
-      case 0x03: this.stack.push(this.stack[this.stack.length - 1]); break;
-      case 0x10: {
-        const name = chunk.constants[instr.operands[0]];
-        const key = name.type === 'string' ? name.value : String(name.value);
-        this.stack.push(this.globals.get(key) || { type: 'null' });
-        break;
-      }
-      case 0x11: {
-        const name = chunk.constants[instr.operands[0]];
-        const key = name.type === 'string' ? name.value : String(name.value);
-        this.globals.set(key, this.stack[this.stack.length - 1]);
-        break;
-      }
-      case 0x12: this.stack.push(this.stack[frame.stackBase + instr.operands[0]] || { type: 'null' }); break;
-      case 0x13: this.stack[frame.stackBase + instr.operands[0]] = this.stack[this.stack.length - 1]; break;
-      case 0x30: { const b = this.stack.pop(), a = this.stack.pop();
-        if (a.type === 'string' || b.type === 'string') this.stack.push({ type: 'string', value: this._toString(a) + this._toString(b) });
-        else this.stack.push({ type: 'number', value: (a.value || 0) + (b.value || 0) }); break; }
-      case 0x31: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'number', value: (a.value || 0) - (b.value || 0) }); break; }
-      case 0x32: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'number', value: (a.value || 0) * (b.value || 0) }); break; }
-      case 0x33: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'number', value: (a.value || 0) / (b.value || 0) }); break; }
-      case 0x34: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'number', value: (a.value || 0) % (b.value || 0) }); break; }
-      case 0x35: { const a = this.stack.pop(); this.stack.push({ type: 'number', value: -(a.value || 0) }); break; }
-      case 0x40: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'boolean', value: this._toString(a) === this._toString(b) }); break; }
-      case 0x41: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'boolean', value: this._toString(a) !== this._toString(b) }); break; }
-      case 0x42: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'boolean', value: (a.value || 0) < (b.value || 0) }); break; }
-      case 0x43: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'boolean', value: (a.value || 0) <= (b.value || 0) }); break; }
-      case 0x44: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'boolean', value: (a.value || 0) > (b.value || 0) }); break; }
-      case 0x45: { const b = this.stack.pop(), a = this.stack.pop(); this.stack.push({ type: 'boolean', value: (a.value || 0) >= (b.value || 0) }); break; }
-      case 0x50: { const a = this.stack.pop(); this.stack.push({ type: 'boolean', value: !this._isTruthy(a) }); break; }
-      case 0x60: frame.ip = instr.operands[0]; break;
-      case 0x61: { const cond = this.stack.pop(); if (!this._isTruthy(cond)) frame.ip = instr.operands[0]; break; }
-      case 0x62: { const cond = this.stack.pop(); if (this._isTruthy(cond)) frame.ip = instr.operands[0]; break; }
-      case 0x63: frame.ip = instr.operands[0]; break;
-      case 0x70: {
-        const argCount = instr.operands[0];
-        const args = [];
-        for (let i = 0; i < argCount; i++) args.unshift(this.stack.pop());
-        const fn = this.stack.pop();
-        if (fn.type === 'native') { this.stack.push(fn.value(args, this)); }
-        else if (fn.type === 'closure') {
-          const newFrame = { closure: fn.value, ip: 0, stackBase: this.stack.length, returnAddress: 0 };
-          for (const arg of args) this.stack.push(arg);
-          this.frames.push(newFrame);
-        }
-        break;
-      }
-      case 0x71: { const retVal = this.stack.length > frame.stackBase ? this.stack.pop() : { type: 'null' };
-        while (this.stack.length > frame.stackBase) this.stack.pop();
-        this.stack.push(retVal); this.frames.pop(); break; }
-      case 0x80: {
-        const count = instr.operands[0];
-        const items = [];
-        for (let i = 0; i < count; i++) items.unshift(this.stack.pop());
-        this.stack.push({ type: 'array', value: items }); break;
-      }
-      case 0xA3: {
-        const val = this.stack.pop();
-        this.outputHandler(this._toString(val)); break;
-      }
-      case 0xAF: this.halted = true; break;
-      default: break;
+      default: return v.type;
     }
   }
 
   _isTruthy(v) {
-    if (!v) return false;
-    if (v.type === 'null') return false;
+    if (!v || v.type === 'null') return false;
     if (v.type === 'boolean') return v.value;
     if (v.type === 'number') return v.value !== 0;
     if (v.type === 'string') return v.value.length > 0;
     return true;
   }
 
-  loadDll(dllData) {
-    if (dllData.magic !== 'SDLL') throw new Error('Invalid DLL format');
-    const vm = new SebianVM();
-    vm.run(dllData.bytecode);
-    const exports = {};
-    for (const exp of dllData.export_table) {
-      const val = vm.globals.get(exp.name);
-      if (val) { exports[exp.name] = val; this.globals.set(exp.name, val); }
+  run(chunk) {
+    if (!chunk?.code) throw new Error('Invalid bytecode');
+    const mainFn = { name: chunk.name || 'main', arity: 0, chunk, upvalueCount: 0 };
+    this.frames.push({ closure: { function: mainFn, upvalues: [] }, ip: 0, stackBase: 0 });
+    this._execute();
+  }
+
+  _execute() {
+    while (this.frames.length > 0 && !this.halted && this.instructionCount < this.maxInstructions) {
+      this.instructionCount++;
+      const f = this.frames[this.frames.length - 1];
+      const c = f.closure.function.chunk;
+      if (f.ip >= c.code.length) { this.frames.pop(); continue; }
+      const i = c.code[f.ip++];
+      this._op(i, f, c);
     }
-    this.modules.set(dllData.name, { name: dllData.name, exports: new Map(Object.entries(exports)), loaded: true });
-    return exports;
+  }
+
+  _op(i, f, c) {
+    const o = i.opcode;
+    switch(o) {
+      case 0x01: this.stack.push(c.constants[i.operands[0]]); break;
+      case 0x02: this.stack.pop(); break;
+      case 0x03: this.stack.push(this.stack[this.stack.length-1]); break;
+      case 0x10: { const n=c.constants[i.operands[0]]; this.stack.push(this.globals.get(n.type==='string'?n.value:String(n.value))||{type:'null'}); break; }
+      case 0x11: { const n=c.constants[i.operands[0]]; this.globals.set(n.type==='string'?n.value:String(n.value),this.stack[this.stack.length-1]); break; }
+      case 0x12: this.stack.push(this.stack[f.stackBase+i.operands[0]]||{type:'null'}); break;
+      case 0x13: this.stack[f.stackBase+i.operands[0]]=this.stack[this.stack.length-1]; break;
+      case 0x30: { const b=this.stack.pop(),a=this.stack.pop();
+        if(a?.type==='string'||b?.type==='string') this.stack.push({type:'string',value:this._toString(a)+this._toString(b)});
+        else this.stack.push({type:'number',value:(a?.value||0)+(b?.value||0)}); break; }
+      case 0x31: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'number',value:(a?.value||0)-(b?.value||0)}); break; }
+      case 0x32: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'number',value:(a?.value||0)*(b?.value||0)}); break; }
+      case 0x33: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'number',value:(a?.value||0)/(b?.value||0)}); break; }
+      case 0x34: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'number',value:(a?.value||0)%(b?.value||0)}); break; }
+      case 0x35: { const a=this.stack.pop(); this.stack.push({type:'number',value:-(a?.value||0)}); break; }
+      case 0x40: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'boolean',value:this._toString(a)===this._toString(b)}); break; }
+      case 0x41: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'boolean',value:this._toString(a)!==this._toString(b)}); break; }
+      case 0x42: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'boolean',value:(a?.value||0)<(b?.value||0)}); break; }
+      case 0x43: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'boolean',value:(a?.value||0)<=(b?.value||0)}); break; }
+      case 0x44: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'boolean',value:(a?.value||0)>(b?.value||0)}); break; }
+      case 0x45: { const b=this.stack.pop(),a=this.stack.pop(); this.stack.push({type:'boolean',value:(a?.value||0)>=(b?.value||0)}); break; }
+      case 0x50: { const a=this.stack.pop(); this.stack.push({type:'boolean',value:!this._isTruthy(a)}); break; }
+      case 0x60: f.ip=i.operands[0]; break;
+      case 0x61: { if(!this._isTruthy(this.stack.pop())) f.ip=i.operands[0]; break; }
+      case 0x62: { if(this._isTruthy(this.stack.pop())) f.ip=i.operands[0]; break; }
+      case 0x63: f.ip=i.operands[0]; break;
+      case 0x70: {
+        const ac=i.operands[0],args=[];
+        for(let j=0;j<ac;j++) args.unshift(this.stack.pop());
+        const fn=this.stack.pop();
+        if(fn?.type==='native') this.stack.push(fn.value(args,this));
+        else if(fn?.type==='closure') { for(const a of args) this.stack.push(a); this.frames.push({closure:fn.value,ip:0,stackBase:this.stack.length-ac}); }
+        break;
+      }
+      case 0x71: { const r=this.stack.length>f.stackBase?this.stack.pop():{type:'null'};
+        while(this.stack.length>f.stackBase) this.stack.pop();
+        this.stack.push(r); this.frames.pop(); break; }
+      case 0x80: { const n=i.operands[0],items=[]; for(let j=0;j<n;j++) items.unshift(this.stack.pop()); this.stack.push({type:'array',value:items}); break; }
+      case 0xA3: { const v=this.stack.pop(); this.output.push(this._toString(v)); break; }
+      case 0xAF: this.halted=true; break;
+    }
   }
 }
 
-// ---- Sebian Compiler (Minimal) ----
-// For full compilation, use the SDK compiler
-class SebianCompiler {
-  compile(source) {
-    // This is a minimal bootstrap compiler
-    // For full compilation use sebianc.js from the SDK
-    throw new Error('Use the full SDK compiler (sebianc.js) for source compilation. This runtime only executes pre-compiled bytecode (.sebc, .sebf, .exe).');
-  }
+// ═══════════ FILE HANDLING ═══════════
+const output = document.getElementById('output');
+const statusText = document.getElementById('statusText');
+const instrCount = document.getElementById('instrCount');
+let lastFile = null;
+
+function log(msg, cls='') {
+  const div = document.createElement('div');
+  div.className = 'line ' + cls;
+  div.textContent = msg;
+  output.appendChild(div);
+  output.scrollTop = output.scrollHeight;
 }
 
-// ---- File Runner ----
-function run(filePath) {
-  const content = fs.readFileSync(filePath);
-  const ext = path.extname(filePath).toLowerCase();
+function clearOutput() {
+  output.innerHTML = '';
+  log('Output cleared.', 'info');
+}
+
+function runBytecode(chunk, label) {
   const vm = new SebianVM();
+  const start = performance.now();
+  try {
+    vm.run(chunk);
+    vm.output.forEach(line => log(line));
+    const dur = (performance.now() - start).toFixed(1);
+    log('✅ Execution complete (' + dur + 'ms, ' + vm.instructionCount + ' instructions)', 'success');
+    statusText.textContent = 'Completed in ' + dur + 'ms';
+    instrCount.textContent = vm.instructionCount.toLocaleString() + ' instructions';
+  } catch (err) {
+    log('❌ Runtime error: ' + err.message, 'error');
+    statusText.textContent = 'Error';
+  }
+}
 
-  switch (ext) {
-    case '.sebc': {
-      const chunk = JSON.parse(content.toString('utf-8'));
-      console.log('[SebianVM] Running compiled bytecode...');
-      vm.run(chunk);
-      console.log('[SebianVM] Done.');
-      break;
-    }
-    case '.sebf': {
-      const sebf = JSON.parse(content.toString('utf-8'));
-      if (sebf.magic !== 'SEBF') throw new Error('Invalid .sebf file');
-      console.log(\`[SebianVM] Running SEBF v\${sebf.version} (compiled \${sebf.compiled_at})\`);
-      vm.run(sebf.bytecode);
-      console.log('[SebianVM] Done.');
-      break;
-    }
-    case '.exe': {
-      // Parse PE and extract .data section containing SEBX payload
-      const buf = content;
-      // Find SEBX marker in binary
-      const str = buf.toString('utf-8', 0, buf.length);
-      const sebxStart = str.indexOf('{"magic":"SEBX"');
-      if (sebxStart === -1) throw new Error('No SEBX payload found in .exe');
-      // Find the end of JSON
-      let depth = 0, end = sebxStart;
-      for (let i = sebxStart; i < str.length; i++) {
+function handleFile(file) {
+  if (!file) return;
+  lastFile = file;
+  const ext = file.name.split('.').pop().toLowerCase();
+  statusText.textContent = 'Loading ' + file.name + '...';
+
+  const reader = new FileReader();
+
+  if (ext === 'exe') {
+    // Binary read for PE parsing
+    reader.onload = function(e) {
+      const buf = new Uint8Array(e.target.result);
+      log('📦 Loading ' + file.name + ' (' + buf.length + ' bytes)', 'info');
+      // Search for SEBX payload
+      const decoder = new TextDecoder('utf-8', { fatal: false });
+      const str = decoder.decode(buf);
+      const idx = str.indexOf('{"magic":"SEBX"');
+      if (idx === -1) { log('❌ No SEBX payload found in .exe', 'error'); return; }
+      let depth = 0, end = idx;
+      for (let i = idx; i < str.length; i++) {
         if (str[i] === '{') depth++;
         if (str[i] === '}') { depth--; if (depth === 0) { end = i + 1; break; } }
       }
-      const sebx = JSON.parse(str.substring(sebxStart, end));
-      console.log(\`[SebianVM] Running PE executable (runtime v\${sebx.runtime.vm_version})\`);
-      vm.run(sebx.bytecode);
-      console.log('[SebianVM] Done.');
-      break;
-    }
-    case '.dll': {
-      const dll = JSON.parse(content.toString('utf-8'));
-      const exports = vm.loadDll(dll);
-      console.log(\`[SebianVM] Loaded DLL: \${dll.name} v\${dll.version}\`);
-      console.log(\`[SebianVM] Exports: \${Object.keys(exports).join(', ')}\`);
-      break;
-    }
-    case '.seb': {
-      console.error('[SebianVM] Cannot compile .seb source in runtime-only mode.');
-      console.error('           Use the full SDK: node run-sebian.mjs <file.seb>');
-      console.error('           Or compile first in Sebian Studio and use .sebc/.sebf/.exe');
-      process.exit(1);
-      break;
-    }
-    default:
-      console.error(\`[SebianVM] Unsupported file type: \${ext}\`);
-      process.exit(1);
+      try {
+        const sebx = JSON.parse(str.substring(idx, end));
+        log('🔧 SEBX v' + (sebx.runtime?.vm_version || '1.0') + ' | Compiled: ' + (sebx.compiled_at || 'unknown'), 'info');
+        runBytecode(sebx.bytecode, file.name);
+      } catch (err) { log('❌ Failed to parse SEBX payload: ' + err.message, 'error'); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.onload = function(e) {
+      const content = e.target.result;
+      log('📦 Loading ' + file.name, 'info');
+
+      if (ext === 'sebc') {
+        try { runBytecode(JSON.parse(content), file.name); }
+        catch (err) { log('❌ Invalid .sebc: ' + err.message, 'error'); }
+      } else if (ext === 'sebf') {
+        try {
+          const sebf = JSON.parse(content);
+          if (sebf.magic !== 'SEBF') { log('❌ Invalid .sebf magic', 'error'); return; }
+          log('🔧 SEBF v' + sebf.version + ' | Built: ' + sebf.compiled_at, 'info');
+          runBytecode(sebf.bytecode, file.name);
+        } catch (err) { log('❌ Error: ' + err.message, 'error'); }
+      } else if (ext === 'dll') {
+        try {
+          const dll = JSON.parse(content);
+          if (dll.magic !== 'SDLL') { log('❌ Invalid .dll magic', 'error'); return; }
+          log('📦 Sebian DLL: ' + dll.name + ' v' + dll.version, 'info');
+          log('   Exports: ' + dll.exports.join(', '), 'info');
+          log('   Built: ' + dll.compiled_at, 'info');
+          log('✅ DLL loaded successfully', 'success');
+        } catch (err) { log('❌ Error: ' + err.message, 'error'); }
+      } else if (ext === 'seb') {
+        log('⚠️ Source compilation in the browser runtime is not supported yet.', 'warn');
+        log('   Compile your .seb file in Sebian Studio first (Deploy tab → .sebc)', 'warn');
+      } else {
+        log('❌ Unsupported file type: .' + ext, 'error');
+      }
+    };
+    reader.readAsText(file);
   }
 }
 
-// ---- Entry Point ----
-const file = process.argv[2];
-if (!file) {
-  console.log('');
-  console.log('  ╔══════════════════════════════════════╗');
-  console.log('  ║       SebianVM Runtime v1.0.0        ║');
-  console.log('  ╠══════════════════════════════════════╣');
-  console.log('  ║                                      ║');
-  console.log('  ║  Usage:                              ║');
-  console.log('  ║    node sebianvm-runtime.js <file>    ║');
-  console.log('  ║                                      ║');
-  console.log('  ║  Supported:                          ║');
-  console.log('  ║    .sebc  Compiled bytecode           ║');
-  console.log('  ║    .sebf  Sebian executable           ║');
-  console.log('  ║    .exe   PE executable               ║');
-  console.log('  ║    .dll   Dynamic library             ║');
-  console.log('  ║                                      ║');
-  console.log('  ║  For .seb source, use the full SDK    ║');
-  console.log('  ╚══════════════════════════════════════╝');
-  console.log('');
-  process.exit(0);
+// ═══════════ COMMAND LINE ═══════════
+function runCommand(cmd) {
+  document.getElementById('cmdInput').value = '';
+  if (!cmd.trim()) return;
+  log('> ' + cmd, 'info');
+
+  const parts = cmd.trim().split(/\\s+/);
+  const command = parts[0].toLowerCase();
+
+  if (command === 'sebian' || command === 'seb') {
+    const sub = (parts[1] || '').toLowerCase();
+    if (sub === 'compile' && parts[2]) {
+      log('⚠️ To compile, drag the file here. The runtime will detect .exe files and re-extract the bytecode.', 'warn');
+      log('   For full compilation from .seb source, use Sebian Studio (Deploy tab).', 'warn');
+    } else if (sub === 'run' && parts[2]) {
+      log('Drag and drop the file to run it.', 'info');
+    } else if (sub === 'version' || sub === '--version' || sub === '-v') {
+      log('SebianVM Runtime v2.0 (Browser Edition)', 'success');
+      log('No Node.js required — runs entirely in the browser.', '');
+    } else if (sub === 'help' || !sub) {
+      log('SebianVM Runtime Commands:', 'info');
+      log('  sebian version    Show version', '');
+      log('  sebian help       Show this help', '');
+      log('  clear             Clear output', '');
+      log('', '');
+      log('Drag & drop .exe, .sebc, .sebf, or .dll files to run them.', '');
+    } else {
+      log('Unknown command: sebian ' + sub, 'error');
+    }
+  } else if (command === 'clear' || command === 'cls') {
+    clearOutput();
+  } else if (command === 'help') {
+    log('Type "sebian help" for SebianVM commands.', 'info');
+  } else {
+    log('Unknown command: ' + command + '. Type "sebian help".', 'error');
+  }
 }
 
-if (!fs.existsSync(file)) {
-  console.error(\`[SebianVM] File not found: \${file}\`);
-  process.exit(1);
-}
-
-run(file);
-`;
+// ═══════════ DRAG & DROP ═══════════
+const dropZone = document.getElementById('dropZone');
+document.body.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('over'); });
+document.body.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+document.body.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+});
+<\/script>
+</body>
+</html>`;
   };
 
-  const handleDownload = (id: string, filename: string, content: string, mime: string) => {
-    setDownloading(id);
-    downloadBlob(new Blob([content], { type: mime }), filename);
-    toast.success(`Downloaded ${filename}`);
-    setTimeout(() => setDownloading(null), 1500);
-  };
-
-  const runtimeContent = buildRuntime();
-
+  // Windows installer that doesn't need Node.js
   const installerBat = `@echo off
 echo ============================================
 echo   SebianVM Installer for Windows
@@ -339,13 +400,18 @@ echo.
 set INSTALL_DIR=%USERPROFILE%\\.sebian
 mkdir "%INSTALL_DIR%" 2>nul
 
-echo Installing SebianVM runtime to %INSTALL_DIR%...
-copy /Y sebianvm-runtime.js "%INSTALL_DIR%\\sebianvm-runtime.js" >nul
+echo Installing SebianVM HTML Runtime to %INSTALL_DIR%...
+copy /Y sebianvm-runtime.html "%INSTALL_DIR%\\sebianvm-runtime.html" >nul
 
 echo Creating sebian.bat launcher...
 (
 echo @echo off
-echo node "%INSTALL_DIR%\\sebianvm-runtime.js" %%*
+echo if "%%1"=="" (
+echo   start "" "%INSTALL_DIR%\\sebianvm-runtime.html"
+echo   exit /b
+echo )
+echo echo Drag and drop your file into the SebianVM runtime window.
+echo start "" "%INSTALL_DIR%\\sebianvm-runtime.html"
 ) > "%INSTALL_DIR%\\sebian.bat"
 
 echo Adding to PATH...
@@ -354,7 +420,10 @@ setx PATH "%PATH%;%INSTALL_DIR%" >nul 2>&1
 echo.
 echo ============================================
 echo   Installation complete!
-echo   Run: sebian yourfile.exe
+echo   Run: sebian (opens runtime in browser)
+echo   Or double-click sebianvm-runtime.html
+echo ============================================
+echo   NO Node.js required!
 echo ============================================
 pause
 `;
@@ -362,19 +431,25 @@ pause
   const installerSh = `#!/bin/bash
 echo "============================================"
 echo "  SebianVM Installer for macOS / Linux"
+echo "  NO Node.js required!"
 echo "============================================"
 echo ""
 
 INSTALL_DIR="$HOME/.sebian"
 mkdir -p "$INSTALL_DIR"
 
-echo "Installing SebianVM runtime to $INSTALL_DIR..."
-cp sebianvm-runtime.js "$INSTALL_DIR/sebianvm-runtime.js"
+echo "Installing SebianVM HTML Runtime to $INSTALL_DIR..."
+cp sebianvm-runtime.html "$INSTALL_DIR/sebianvm-runtime.html"
 
 echo "Creating sebian launcher..."
 cat > "$INSTALL_DIR/sebian" << 'LAUNCHER'
 #!/bin/bash
-node "$HOME/.sebian/sebianvm-runtime.js" "$@"
+if [ -z "$1" ]; then
+  open "$HOME/.sebian/sebianvm-runtime.html" 2>/dev/null || xdg-open "$HOME/.sebian/sebianvm-runtime.html" 2>/dev/null
+else
+  echo "Drag and drop your file into the SebianVM runtime window."
+  open "$HOME/.sebian/sebianvm-runtime.html" 2>/dev/null || xdg-open "$HOME/.sebian/sebianvm-runtime.html" 2>/dev/null
+fi
 LAUNCHER
 chmod +x "$INSTALL_DIR/sebian"
 
@@ -389,8 +464,9 @@ fi
 echo ""
 echo "============================================"
 echo "  Installation complete!"
-echo "  Restart your terminal, then run:"
-echo "    sebian yourfile.exe"
+echo "  Run: sebian (opens in your browser)"
+echo "  Or open sebianvm-runtime.html directly"
+echo "  NO Node.js needed!"
 echo "============================================"
 `;
 
@@ -398,28 +474,28 @@ echo "============================================"
     <div className="h-full flex flex-col">
       <div className="px-3 py-2 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground">Download Sebian</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">Runtime, installers & tools</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Runtime, installers & tools — no Node.js needed</p>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-3">
-          {/* Runtime */}
+          {/* HTML Runtime */}
           <div className="bg-accent/20 rounded-lg p-3 border border-primary/30">
             <div className="flex items-center gap-2 mb-2">
-              <Cpu className="h-4 w-4 text-primary" />
+              <Globe className="h-4 w-4 text-primary" />
               <span className="font-medium text-sm">SebianVM Runtime</span>
-              <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">CORE</span>
+              <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">v2.0</span>
             </div>
             <p className="text-xs text-muted-foreground mb-2">
-              The standalone Sebian VM. Required to run .exe, .dll, .sebc, and .sebf files outside of Sebian Studio. Powered by Node.js.
+              Self-contained HTML file. <strong>No Node.js required.</strong> Just double-click to open in any browser. Drag & drop your .exe, .sebc, .sebf, or .dll files.
             </p>
             <Button
               size="sm"
               className="w-full"
-              onClick={() => handleDownload('runtime', 'sebianvm-runtime.js', runtimeContent, 'application/javascript')}
+              onClick={() => handleDownload('runtime', 'sebianvm-runtime.html', buildHtmlRuntime(), 'text/html')}
             >
               {downloading === 'runtime' ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Download className="h-3.5 w-3.5 mr-1.5" />}
-              Download sebianvm-runtime.js
+              Download sebianvm-runtime.html
             </Button>
           </div>
 
@@ -430,7 +506,7 @@ echo "============================================"
               <span className="font-medium text-sm">Windows Installer</span>
             </div>
             <p className="text-xs text-muted-foreground mb-2">
-              One-click installer for Windows. Installs the runtime and adds <code className="bg-secondary px-1 rounded">sebian</code> to your PATH.
+              Installs the runtime and adds <code className="bg-secondary px-1 rounded">sebian</code> to PATH. No Node.js.
             </p>
             <Button
               size="sm"
@@ -450,7 +526,7 @@ echo "============================================"
               <span className="font-medium text-sm">macOS / Linux Installer</span>
             </div>
             <p className="text-xs text-muted-foreground mb-2">
-              Shell script installer. Run <code className="bg-secondary px-1 rounded">bash install-sebian.sh</code> to install.
+              Run <code className="bg-secondary px-1 rounded">bash install-sebian.sh</code>. No Node.js.
             </p>
             <Button
               size="sm"
@@ -467,34 +543,18 @@ echo "============================================"
           <div className="bg-secondary/30 rounded-lg p-3 border border-border">
             <div className="flex items-center gap-2 mb-2">
               <Shield className="h-4 w-4 text-primary" />
-              <span className="font-medium text-sm">How .exe files work</span>
+              <span className="font-medium text-sm">How it works</span>
             </div>
             <div className="text-xs text-muted-foreground space-y-1.5">
-              <p>When you build a <strong>.exe</strong> in the Deploy tab, Sebian generates a <strong>real PE binary</strong> with:</p>
-              <ul className="list-disc list-inside space-y-0.5 ml-1">
-                <li>Valid MZ/PE Windows headers</li>
-                <li>Compiled bytecode in the .data section</li>
-                <li>SEBX payload with runtime metadata</li>
-              </ul>
-              <p className="mt-2">To run your .exe:</p>
+              <p>The runtime is a <strong>single HTML file</strong> with the full SebianVM embedded. No dependencies.</p>
               <div className="bg-background rounded p-2 font-mono mt-1 border border-border">
-                <p>1. Download the runtime above</p>
-                <p>2. Run the installer (or manual setup)</p>
-                <p>3. <code>sebian project.exe</code></p>
+                <p>1. Download sebianvm-runtime.html</p>
+                <p>2. Double-click to open in browser</p>
+                <p>3. Drag & drop your .exe / .sebc / .sebf</p>
+                <p>4. Output appears instantly!</p>
               </div>
-              <p className="mt-2">The runtime parses the PE, extracts the SEBX bytecode payload, and executes it in SebianVM — just like a real executable.</p>
+              <p className="mt-2">For .exe files, the runtime extracts the SEBX bytecode payload from the PE binary and executes it in the VM.</p>
             </div>
-          </div>
-
-          {/* Supported files */}
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">Runtime supports:</p>
-            <ul className="list-disc list-inside space-y-0.5 ml-1">
-              <li><strong>.exe</strong> — PE executables with SEBX payload</li>
-              <li><strong>.dll</strong> — Dynamic libraries with export tables</li>
-              <li><strong>.sebf</strong> — Self-contained executables</li>
-              <li><strong>.sebc</strong> — Raw compiled bytecode</li>
-            </ul>
           </div>
         </div>
       </ScrollArea>
