@@ -47,20 +47,37 @@ SYNTAX A (Preferred):
 SYNTAX B (Alternative):
   Import <name> from <module>
 
-AVAILABLE MODULES:
+AVAILABLE MODULES (these are the ONLY modules and ONLY exports the SebianVM interpreter
+actually provides — do not invent functions that aren't in this list):
+
   core    → print, type, len, str, num, bool, keys, values, range
-  math    → PI, E, TAU, INFINITY, abs, floor, ceil, round, sqrt, pow,
-            sin, cos, tan, asin, acos, atan, atan2, log, log10, log2,
-            exp, random, randint, min, max, clamp, sign
+  math    → PI, E, TAU, INFINITY,
+            abs, floor, ceil, round, sqrt, pow,
+            sin, cos, tan, asin, acos, atan, atan2,
+            log, log10, log2, exp,
+            random, randint, min, max, clamp, sign
   string  → upper, lower, trim, split, join, replace, contains,
             starts_with, ends_with, substr, char_at, index_of, repeat,
             pad_start, pad_end
   array   → push, pop, shift, unshift, slice, concat, reverse,
             includes, index_of, fill
-  ui      → create, set_prop, add_child, render, alert, prompt, confirm
-  time    → now, sleep, format_date, parse_date
-  fs      → read, write, exists, delete, list
-  net     → fetch, get, post
+  ui      → create, set_prop, append, render,
+            tracker, buttons, inputs, containers, text, SebianVM
+            (Note: there is NO ui.add_child / alert / prompt / confirm —
+             use 'append' to nest nodes, and prefer the top-level
+             'Create <type> name [ ... ]' syntax for building UI.)
+  time    → now, timestamp, format
+            (Note: there is NO time.sleep / parse_date.)
+  fs      → read, write, exists, delete, list   (Sandbox Level 2+)
+  net     → fetch                               (Sandbox Level 2+;
+            there is NO net.get / net.post — only net.fetch)
+  memory  → alloc, read, write, free, size,
+            readInt32, writeInt32, readFloat64, writeFloat64,
+            readString, writeString, copy        (Sandbox Level 1 only)
+  sebian  → merged convenience module that re-exports both UI helpers
+            and the SebianVM symbol, e.g.:
+              Import SebianVM from sebian
+              from sebian import SebianVM
 
 CORRECT EXAMPLES:
   from core import print
