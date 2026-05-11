@@ -337,6 +337,60 @@ WRONG:
   f"Hello, {name}!"       ❌ No f-strings
 
 ═══════════════════════════════════════════════════════════════════════════════
+SECTION 11b: MEMORY MODULE (C++ style low-level memory — Sandbox Level 1 only)
+═══════════════════════════════════════════════════════════════════════════════
+The 'memory' module gives Sebian programs raw byte-buffer access, similar to
+malloc/free + pointer reads/writes in C/C++. It is only available when the
+sandbox level is 1 (Unsafe / Host). Do NOT use it in level 2 or 3 code.
+
+IMPORT:
+  from memory import alloc, read, write, free, size
+  from memory import readInt32, writeInt32, readFloat64, writeFloat64
+  from memory import readString, writeString, copy
+
+CORE FUNCTIONS:
+  alloc(numBytes)              → returns a buffer handle (number id)
+  free(buffer)                 → releases the buffer
+  size(buffer)                 → byte length of the buffer
+  read(buffer, offset)         → single byte (0-255) at offset
+  write(buffer, offset, byte)  → store a single byte
+  copy(dst, dstOffset, src, srcOffset, numBytes)
+
+TYPED HELPERS (offset is in bytes):
+  readInt32(buffer, offset)               → 32-bit signed int
+  writeInt32(buffer, offset, value)
+  readFloat64(buffer, offset)             → 64-bit float
+  writeFloat64(buffer, offset, value)
+  readString(buffer, offset, byteLength)  → utf-8 string
+  writeString(buffer, offset, str)        → returns bytes written
+
+CORRECT EXAMPLE:
+  from core import print, str
+  from memory import alloc, writeInt32, readInt32, writeString, readString, free, size
+
+  local buf = alloc(64)
+  writeInt32(buf, 0, 12345)
+  writeString(buf, 8, "hello")
+  print("int = " + str(readInt32(buf, 0)))
+  print("str = " + readString(buf, 8, 5))
+  print("size = " + str(size(buf)))
+  free(buf)
+
+RULES:
+• A buffer handle is just a number — pass it around like any value
+• Offsets are in bytes and must stay within size(buffer)
+• Always free(buf) when done to release memory
+• Do NOT use memory.* in Level 2/3 (sandboxed/UI) programs
+• There is NO pointer arithmetic operator — use offsets explicitly
+
+WRONG (C / JS style — DO NOT USE):
+  malloc(64)            ❌ Use alloc(64)
+  *ptr = 5              ❌ Use write(buf, offset, 5)
+  buf[0] = 5            ❌ Use write(buf, 0, 5)
+  new ArrayBuffer(64)   ❌ Use alloc(64)
+  delete buf            ❌ Use free(buf)
+
+═══════════════════════════════════════════════════════════════════════════════
 SECTION 12: COMPLETE WORKING EXAMPLES
 ═══════════════════════════════════════════════════════════════════════════════
 
